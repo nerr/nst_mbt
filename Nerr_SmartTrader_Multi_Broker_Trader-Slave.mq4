@@ -1,0 +1,277 @@
+/* Nerr SmartTrader - Multi Broker Trader - Slave
+ *
+ * By Leon Zhuang
+ * Twitter @Nerrsoft
+ * leon@nerrsoft.com
+ * http://nerrsoft.com
+ * 
+ * 
+ * @History
+ * v0.0.0  [dev] 2012-06-06 init.
+ * v0.0.1  [dev] 2012-06-08 complete mysql & sqlite read and write test, final selected mysql wrapper; complete price difference calu.
+ * v0.0.2  [dev] 2012-06-11 complete slave client main part programe.
+ * v0.0.3  [dev] 2012-06-14 fix the create table (copy symbol table struc) bug.
+ * v0.0.4  [dev] 2012-06-28 finished "updateProiftToDB()".
+ * v0.0.5  [dev] 2012-06-29 fix table `tradecommand` field typo
+ * v0.0.6  [dev] 2012-06-29 add more status type in field `orderstatus` 
+ * v0.0.7  [dev] 2012-07-02 fix orderAction fun bug.
+ * v0.1.0  [dev] 2012-07-05 update new version mysql wrapper 2.0.5 and recode slave client
+ * v0.1.1  [dev] 2012-07-12 fix updateProfitToDb() bug
+ * v0.1.2  [dev] 2012-07-13 update order profit calu fun.
+ * 
+ * `command` desc
+ * commandtype:
+ * 	0-buy / 1-sell / 2-close
+ * slaveorderstatus:
+ * 	0-newcommand / 1-opened / 2-closed / 3-open order failed / 4-close order failed
+ */
+
+//-- property info
+#property copyright "Copyright ? 2012 Nerrsoft.com"
+#property link      "http://nerrsoft.com"
+
+//-- The information of this EA
+string eaInfo[3];
+
+//-- global var
+string 		mInfo[22];
+double 		localPrice[2];
+datetime 	localTimeCurrent;
+
+//-- include mysql wrapper
+#include <mysql_v2.0.5.mqh>
+string  host     = "127.0.0.1";
+string  user     = "root";
+string  pass     = "911911";
+string  dbName   = "metatrader";
+int     port     = 3306;
+int     socket   = 0;
+int     client   = 0;
+int     dbConnectId = 0;
+bool    goodConnect = false;
+
+#include <nerr_smart_trader_common.mqh>
+
+//-- init
+int init()
+{
+	eaInfo[0]	= "NST-MBT-Slave";
+	eaInfo[1]	= "0.1.2 [dev]";
+	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
+	
+	//-- get market information
+	getInfo(mInfo);
+
+	//-- connect mysql
+	goodConnect = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+
+	if(!goodConnect) return (1);
+
+	//-- create price table if it not exists
+	string query = StringConcatenate(
+		"CREATE TABLE IF NOT EXISTS `" + mInfo[20] + "` (",
+		"`broker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`account`  int(10) NOT NULL ,",
+		"`timecurrent`  int(10) NULL DEFAULT NULL ,",
+		"`bidprice`  float NULL DEFAULT NULL ,",
+		"`askprice`  float NULL DEFAULT NULL ,",
+		"PRIMARY KEY (`account`),",
+		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
+		")",
+		"ENGINE=InnoDB ",
+		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci ",
+		"ROW_FORMAT=COMPACT"
+	);
+	mysqlQuery(dbConnectId, query);
+
+	//-- insert record if not exists
+	query = StringConcatenate(
+		"INSERT IGNORE INTO `" + mInfo[20] + "` (`broker`, `account`) ",
+		"VALUES (\'" + mInfo[1] + "\', " + mInfo[15] + ")"
+	);
+	mysqlQuery(dbConnectId,query);
+
+	return(0);
+}
+
+//-- deinit
+int deinit()
+{
+	mysqlDeinit(dbConnectId);
+	return(0);
+}
+
+//-- start
+int start()
+{
+	//-- check new trade command (orderstatus==0)
+	checkTradeCommand();
+
+	//-- update profit to db if have
+	updateProfitToDb();
+
+	//-- update current symbol price to db
+	updatePriceToDb();
+
+	//-- output infarmation into to chart
+	watermark_slave(eaInfo, localPrice, localTimeCurrent, mInfo);
+
+	return(0);
+}
+
+void checkTradeCommand()
+{
+	string data[][8];
+	string query = StringConcatenate(
+		"SELECT id,commandtype,masterorderticket,masteropenprice,pricedifference,lots,slaveorderstatus,slaveorderticket ",
+		"FROM `_command` WHERE (slaveorderstatus<2 OR slaveorderstatus>3) AND slavebroker=\'" + mInfo[1] + "\' AND slaveaccount=" + mInfo[15] + " AND symbol=\'" + mInfo[20] + "\'"
+	);
+	int result = mysqlFetchArray(dbConnectId, query, data);
+	if(result>0)
+	{
+		int rows = ArrayRange(data, 0);
+
+		for(int i = 0; i < rows; i++)
+		{
+			orderAction(data, i);
+		}
+	}
+	else if(result<0)
+	{
+		outputLog(query, "SQL_ERROR_CHECK_COMMAND");
+	}
+}
+
+void orderAction(string d[][], int key) //-- todo: check price difference
+{
+	int commandid 			= StrToInteger(d[key][0]);
+	int commandtype 		= StrToInteger(d[key][1]);
+	int slaveorderstatus 	= StrToInteger(d[key][6]);
+	int magicnumber			= StrToInteger(d[key][2]);
+	int slaveorderticket	= StrToInteger(d[key][7]);
+	double lots 			= StrToDouble(d[key][5]);
+	double pricedifference	= StrToDouble(d[key][4]);
+	double masteropenprice	= StrToDouble(d[key][3]);
+
+	switch(slaveorderstatus)
+	{
+		case 0: //- new command, need open order
+			//-- get open price
+			double openprice;
+			if(commandtype==0)
+				openprice = Ask;
+			else if(commandtype==1)
+				openprice = Bid;
+
+			//-- send open order command
+			int orderId = OrderSend(mInfo[20], commandtype, lots, openprice, 3, 0, 0, "", magicnumber, 0);
+			//-- return result to command record
+			if(orderId>0)
+				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderticket=" + orderId + ", slaveorderstatus=1" + " WHERE id=" + commandid);
+			else
+				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=3 WHERE id=" + commandid);
+
+			break;
+		case 1: //- opened order, waitting for close
+			if(commandtype==2)
+			{
+				if(OrderSelect(slaveorderticket, SELECT_BY_TICKET)==true)
+				{
+					//-- get open price
+					double closeprice;
+					if(OrderType()==OP_BUY)
+						closeprice = Bid;
+					else
+						closeprice = Ask;
+
+					//-- send open order command
+					if(OrderClose(slaveorderticket, OrderLots(), closeprice, 3) == true)
+						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+					else
+						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=4 WHERE id=" + commandid);
+				}
+			}
+			break;
+		case 4: //- the order need to close 
+			if(commandtype==2)
+			{
+				if(OrderSelect(slaveorderticket, SELECT_BY_TICKET)==true)
+				{
+					//-- get open price
+					double speccloseprice;
+					if(OrderType()==OP_BUY)
+						speccloseprice = Bid;
+					else
+						speccloseprice = Ask;
+
+					//-- send open order command
+					if(OrderClose(OrderTicket(), OrderLots(), speccloseprice, 3) == true)
+						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+					if(GetLastError()==4108)
+						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+				}
+				else
+				{
+					mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+				}
+			}
+			break;
+		default: break;
+	}
+}
+
+void updateProfitToDb()
+{
+	string data[][12];
+	string query = StringConcatenate(
+		"SELECT * ",
+		"FROM `_command` WHERE slaveorderstatus=1"
+	);
+
+	int result = mysqlFetchArray(dbConnectId, query, data);
+
+	if(result>0)
+	{
+		int rows = ArrayRange(data, 0);
+		int cols = ArrayRange(data, 1);
+		double profit = 0;
+
+		for(int i = 0; i < rows; i++)
+		{
+			int slaveorderticket = StrToInteger(data[i][9]);
+			if(OrderSelect(slaveorderticket, SELECT_BY_TICKET)==true)
+			{
+				profit = OrderProfit() + OrderSwap() + OrderCommission();
+				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveprofit=" + profit + " WHERE id=" + data[i][0]);
+			}
+		}
+	}
+	else if(result<0)
+	{
+		outputLog(query, "SQL_ERROR_UPDATE_PROFIT");
+	}
+}
+
+void updatePriceToDb()
+{
+	RefreshRates();
+	//-- get current price - bid, ask and current time
+	if(Bid>0)
+		localPrice[0] = Bid;
+	else
+		localPrice[0] = 0;
+	if(Ask>0)
+		localPrice[1] = Ask;
+	else
+		localPrice[1] = 0;
+	
+	localTimeCurrent = TimeLocal(); //localTimeCurrent = TimeCurrent();
+
+	//-- update to db
+	string query = StringConcatenate(
+		"UPDATE `" + mInfo[20] + "` ",
+		"SET timecurrent=" + localTimeCurrent + ", bidprice=" + localPrice[0] + ", askprice=" + localPrice[1] + " ",
+		"WHERE account='" + mInfo[15] + "' and broker='" +  mInfo[1] + "'"
+	);
+	mysqlQuery(dbConnectId, query);
+}
