@@ -19,7 +19,7 @@
  * v0.1.1  [dev] 2012-07-12 fix updateProfitToDb() bug
  * v0.1.2  [dev] 2012-07-13 update order profit calu fun.
  * 
- * `command` desc
+ * `command` comment
  * commandtype:
  * 	0-buy / 1-sell / 2-close
  * slaveorderstatus:

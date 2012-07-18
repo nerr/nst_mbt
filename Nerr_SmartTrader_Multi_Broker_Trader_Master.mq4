@@ -16,6 +16,7 @@
  * v0.1.0  [dev] 2012-07-10 update new version mysql wrapper 2.0.5 and recode master client
  * v0.1.3  [dev] 2012-07-10 fix some bug, redegsin watermark and rename to dubuginfo
  * v0.1.4  [dev] 2012-07-13 recode debuginfo display part
+ * v0.1.5  [dev] 2012-07-17 fix typo
  *
  * @Todo
  * # add money mangment
@@ -63,7 +64,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.1.3 [dev]";
+	eaInfo[1]	= "0.1.5 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -298,7 +299,7 @@ void checkCurrentOrder()
 
 void checkPriceDifference()
 {
-	//-- get master borker price
+	//-- get master broker price
 	RefreshRates();
 	if(Bid>0)
 		localPrice[0] = Bid;
@@ -394,7 +395,7 @@ void initDebugInfo()
 	//-- broker price table
 	//-- line 1
 	y += 15;
-	createTextObj("table_row_1_col_1", 5,	y, "Borker");
+	createTextObj("table_row_1_col_1", 5,	y, "Broker");
 	createTextObj("table_row_1_col_2", 55,	y, "Account");
 	createTextObj("table_row_1_col_3", 115,	y, "Time");
 	createTextObj("table_row_1_col_4", 260,	y, "Bid");
