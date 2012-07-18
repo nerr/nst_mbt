@@ -1,2 +1,10 @@
 =Install=
-Copy the "experts" forder to you MateTrader4's "experts" folder.
+0. You need two broker and you need install MySQL 5.5 first
+1. Copy the "experts" forder to both your two broker's MateTrader4 installation folder.
+2. Restart your two MateTrader4 terminal.
+3. Setup master client - new a chart in one of you MateTrader4, load "NST_MBT_Master"
+4. Setup slave client - new a chart in one of you MateTrader4, load "NST_MBT_Slave"
+
+
+
+to be continue....
