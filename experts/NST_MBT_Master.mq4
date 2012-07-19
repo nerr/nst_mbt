@@ -32,12 +32,19 @@ extern double 	BaseLots		= 0.2;
 extern int 		BaseTarget		= 10;
 extern int 	  	MagicNumber		= 9999;
 extern double 	TholdPips		= 5;
+extern string 	RemoteSetting	= "---------Remote Setting---------";
 extern string 	RemoteAccount	= "4149641";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
-
+extern string 	DBSetting		= "---------DB Setting---------";
+extern string 	host			= "127.0.0.1";
+extern string 	user			= "root";
+extern string 	pass			= "911911";
+extern string 	dbName			= "metatrader";
+extern int 		port			= 3306;
 
 //-- The information of this EA
 string eaInfo[3];
+
 //-- global var
 string 		mInfo[22];
 double 		localPrice[2], remotePrice[2];
@@ -48,16 +55,11 @@ int 		currentLevel = 0;
 
 //-- include mysql wrapper
 #include <mysql_v2.0.5.mqh>
-string  host     = "127.0.0.1";
-string  user     = "root";
-string  pass     = "911911";
-string  dbName   = "metatrader";
-int     port     = 3306;
 int     socket   = 0;
 int     client   = 0;
 int     dbConnectId = 0;
 bool    goodConnect = false;
-
+//-- include common fun
 #include <nerr_smart_trader_common.mqh>
 
 //-- init
@@ -74,34 +76,6 @@ int init()
 	goodConnect = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
 
 	if(!goodConnect) return (1);
-
-	//-- create command table if it not exists
-	string query = StringConcatenate(
-		"CREATE TABLE IF NOT EXISTS `_command` (",
-		"`id`  int(11) NOT NULL AUTO_INCREMENT ,",
-		"`slavebroker`  varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
-		"`slaveaccount`  int(10) NOT NULL ,",
-		"`symbol`  varchar(6) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,",
-		"`commandtype`  tinyint(4) UNSIGNED NOT NULL ,",
-		"`masterorderticket`  int(11) NOT NULL ,",
-		"`masteropenprice`  float NULL DEFAULT NULL ,",
-		"`pricedifference`  float NULL DEFAULT NULL ,",
-		"`lots`  float NULL DEFAULT NULL ,",
-		"`slaveorderticket`  int(11) NULL DEFAULT NULL ,",
-		"`slaveorderstatus`  tinyint(4) UNSIGNED NULL DEFAULT NULL ,",
-		"`slaveprofit`  float NULL DEFAULT NULL ,",
-		"PRIMARY KEY (`id`),",
-		"INDEX `idx_orderticket` (`masterorderticket`, `slaveorderticket`) USING BTREE ,",
-		"INDEX `idx_orderstatus` (`commandtype`, `slaveorderstatus`) USING BTREE ,",
-		"INDEX `idx_brokeraccountsymbol` (`slavebroker`, `slaveaccount`, `symbol`) USING BTREE" ,
-		")",
-		"ENGINE=InnoDB ",
-		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci ",
-		"COMMENT=\'commandtype:[0-buy][1-sell][2-close]\r\norderstatus:[1-opened][2-closed][3-open order failed][4-close order failed]\' ",
-		"AUTO_INCREMENT=1 ",
-		"ROW_FORMAT=COMPACT"
-	);
-	mysqlQuery(dbConnectId, query);
 
 	//-- calu thold pips
 	if(StrToInteger(mInfo[21]) < 4)
