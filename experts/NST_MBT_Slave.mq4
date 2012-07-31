@@ -18,6 +18,7 @@
  * v0.1.0  [dev] 2012-07-05 update new version mysql wrapper 2.0.5 and recode slave client
  * v0.1.1  [dev] 2012-07-12 fix updateProfitToDb() bug
  * v0.1.2  [dev] 2012-07-13 update order profit calu fun.
+ * v0.1.3  [dev] 2012-07-31 update table `_command`, add two field `masterbroker` and `masteraccount`
  * 
  * `command` comment
  * commandtype:
@@ -59,7 +60,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Slave";
-	eaInfo[1]	= "0.1.2 [dev]";
+	eaInfo[1]	= "0.1.3 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 	
 	//-- get market information
@@ -91,9 +92,9 @@ int init()
 	string query = StringConcatenate(
 		"CREATE TABLE IF NOT EXISTS `_command` (",
 		"`id`  int(11) NOT NULL AUTO_INCREMENT ,",
-		"`masterbroker`  varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`masterbroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
 		"`masteraccount`  int(10) NOT NULL ,",
-		"`slavebroker`  varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`slavebroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
 		"`slaveaccount`  int(10) NOT NULL ,",
 		"`symbol`  varchar(6) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,",
 		"`commandtype`  tinyint(4) UNSIGNED NOT NULL ,",
