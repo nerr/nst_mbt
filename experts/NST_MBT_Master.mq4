@@ -17,6 +17,7 @@
  * v0.1.3  [dev] 2012-07-10 fix some bug, redegsin watermark and rename to dubuginfo
  * v0.1.4  [dev] 2012-07-13 recode debuginfo display part
  * v0.1.5  [dev] 2012-07-17 fix typo
+ * v0.1.6  [dev] 2012-07-31 adjust param
  *
  * @Todo
  * # add money mangment
@@ -66,7 +67,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.1.5 [dev]";
+	eaInfo[1]	= "0.1.6 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -303,7 +304,7 @@ void checkPriceDifference()
 	}
 
 	//-- calu difference
-	if(MathAbs(remoteTimeCurrent-localTimeCurrent)<3) //-- todo
+	if(MathAbs(remoteTimeCurrent-localTimeCurrent)<2) //-- todo
 	{
 		if(remotePrice[0]>0 && localPrice[1]>0)
 		{
