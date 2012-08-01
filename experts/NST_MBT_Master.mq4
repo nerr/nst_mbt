@@ -19,6 +19,7 @@
  * v0.1.5  [dev] 2012-07-17 fix typo
  * v0.1.6  [dev] 2012-07-31 adjust param
  * v0.1.7  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
+ * v0.1.8  [dev] 2012-08-01 update relation sql string, add masteraccount and masterbroker field.
  *
  * @Todo
  * # add money mangment
@@ -61,7 +62,7 @@ int     socket   = 0;
 int     client   = 0;
 int     dbConnectId = 0;
 bool    goodConnect = false;
-//-- include common fun
+//-- include common func
 #include <nerr_smart_trader_common.mqh>
 
 //-- init
@@ -126,7 +127,7 @@ void checkBadOrder()
 	string query = StringConcatenate(
 		"SELECT id,masterorderticket ",
 		"FROM `_command` ",
-		"WHERE slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=3"
+		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=3"
 	);
 
 	int result = mysqlFetchArray(dbConnectId, query, data);
@@ -193,9 +194,8 @@ void scanOpportunity()
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
-					"(slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
-					"(\'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0)"
-				);
+					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)"				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
 			}
@@ -215,8 +215,8 @@ void scanOpportunity()
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
-					"(slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
-					"(\'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)"
+					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)"
 				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
@@ -235,7 +235,7 @@ void checkCurrentOrder()
 	string data[][3];
 	string query = StringConcatenate(
 		"SELECT slaveprofit,masterorderticket,slaveorderticket FROM `_command` ",
-		"WHERE slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=1"
+		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=1"
 	);
 	int result = mysqlFetchArray(dbConnectId, query, data);
 	if(result>0)
@@ -353,7 +353,7 @@ void closeOrder(int ticket, int slaveticket)
 			//--close remote order
 			string query = StringConcatenate(
 				"UPDATE `_command SET commandtype=2 ",
-				"WHERE masterorderticket=" + ticket + " AND slaveorderticket=" + slaveticket + " AND slaveorderstatus=1"
+				"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND masterorderticket=" + ticket + " AND slaveorderticket=" + slaveticket + " AND slaveorderstatus=1"
 			);
 			mysqlQuery(dbConnectId, query);
 		}

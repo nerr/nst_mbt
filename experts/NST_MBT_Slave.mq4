@@ -90,7 +90,7 @@ int init()
 	mysqlQuery(dbConnectId, query);
 
 	//-- create command table if it not exists
-	string query = StringConcatenate(
+	query = StringConcatenate(
 		"CREATE TABLE IF NOT EXISTS `_command` (",
 		"`id`  int(11) NOT NULL AUTO_INCREMENT ,",
 		"`masterbroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
@@ -310,7 +310,7 @@ void updatePriceToDb()
 	string query = StringConcatenate(
 		"UPDATE `" + mInfo[20] + "` ",
 		"SET timecurrent=" + localTimeCurrent + ", bidprice=" + localPrice[0] + ", askprice=" + localPrice[1] + " ",
-		"WHERE account='" + mInfo[15] + "' and broker='" +  mInfo[1] + "'"
+		"WHERE account='" + mInfo[15] + "' and broker=\'" +  mInfo[1] + "\'"
 	);
 	mysqlQuery(dbConnectId, query);
 }
