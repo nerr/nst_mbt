@@ -10,14 +10,15 @@
  * v0.0.0  [dev] 2012-06-06 init.
  * v0.0.1  [dev] 2012-06-08 complete mysql & sqlite read and write test, final selected mysql wrapper; complete price difference calu.
  * v0.0.2  [dev] 2012-06-14 fix the price difference indicator bug.
- * v0.0.3  [dev] 2012-06-28 finish open order and close order fun.
+ * v0.0.3  [dev] 2012-06-28 finish open order and close order func.
  * v0.0.4  [dev] 2012-06-29 fix table `tradecommand` field typo
- * v0.0.5  [dev] 2012-07-02 add checkBadOrder() fun, use to check orderstatus>2 (3-slave client open order failed)
+ * v0.0.5  [dev] 2012-07-02 add checkBadOrder() func, use to check orderstatus>2 (3-slave client open order failed)
  * v0.1.0  [dev] 2012-07-10 update new version mysql wrapper 2.0.5 and recode master client
  * v0.1.3  [dev] 2012-07-10 fix some bug, redegsin watermark and rename to dubuginfo
  * v0.1.4  [dev] 2012-07-13 recode debuginfo display part
  * v0.1.5  [dev] 2012-07-17 fix typo
  * v0.1.6  [dev] 2012-07-31 adjust param
+ * v0.1.7  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  *
  * @Todo
  * # add money mangment
@@ -74,7 +75,7 @@ int init()
 	getInfo(mInfo);
 
 	//-- connect mysql
-	goodConnect = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+	goodConnect = connectdb();
 
 	if(!goodConnect) return (1);
 
@@ -111,6 +112,10 @@ int start()
 	
 	//-- output into to chart
 	updateDubugInfo();
+
+	//-- reconnect mysql per hour
+	if((TimeLocal() % 3600)==0)
+		connectdb();
 	
 	return(0);
 }
@@ -506,4 +511,16 @@ void deleteOrderInfoLine(int level)
 			ObjectDelete(level+"_"+i);
 		}
 	}
+}
+
+int connectdb()
+{
+	//-- close connection if exists
+	if(dbConnectId>0)
+		mysqlDeinit(dbConnectId);
+
+	//-- connect mysql
+	int result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+
+	return (result);
 }

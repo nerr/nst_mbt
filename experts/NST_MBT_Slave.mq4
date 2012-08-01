@@ -14,11 +14,12 @@
  * v0.0.4  [dev] 2012-06-28 finished "updateProiftToDB()".
  * v0.0.5  [dev] 2012-06-29 fix table `tradecommand` field typo
  * v0.0.6  [dev] 2012-06-29 add more status type in field `orderstatus` 
- * v0.0.7  [dev] 2012-07-02 fix orderAction fun bug.
+ * v0.0.7  [dev] 2012-07-02 fix orderAction func bug.
  * v0.1.0  [dev] 2012-07-05 update new version mysql wrapper 2.0.5 and recode slave client
  * v0.1.1  [dev] 2012-07-12 fix updateProfitToDb() bug
- * v0.1.2  [dev] 2012-07-13 update order profit calu fun.
+ * v0.1.2  [dev] 2012-07-13 update order profit calu func.
  * v0.1.3  [dev] 2012-07-31 update table `_command`, add two field `masterbroker` and `masteraccount`
+ * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * 
  * `command` comment
  * commandtype:
@@ -67,7 +68,7 @@ int init()
 	getInfo(mInfo);
 
 	//-- connect mysql
-	goodConnect = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+	goodConnect = connectdb();
 
 	if(!goodConnect) return (1);
 
@@ -149,6 +150,10 @@ int start()
 
 	//-- output infarmation into to chart
 	watermark_slave(eaInfo, localPrice, localTimeCurrent, mInfo);
+
+	//-- reconnect mysql per hour
+	if((TimeLocal() % 3600)==0)
+		connectdb();
 
 	return(0);
 }
@@ -308,4 +313,16 @@ void updatePriceToDb()
 		"WHERE account='" + mInfo[15] + "' and broker='" +  mInfo[1] + "'"
 	);
 	mysqlQuery(dbConnectId, query);
+}
+
+int connectdb()
+{
+	//-- close connection if exists
+	if(dbConnectId>0)
+		mysqlDeinit(dbConnectId);
+
+	//-- connect mysql
+	int result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+
+	return (result);
 }
