@@ -2,7 +2,7 @@ Nerr SmartTrader - Multi Broker Trader
 By Leon Zhuang @Nerrsoft
 http://nerrsoft.com
 
-It's a EA (Expert Advisor) for MetaTrader4, use to trade on two or more brokers, check the price with difference broker, if the price difference is big enough (you can set), open order on these brokers at same time, one Buy order one Sell order, then when total profit greater than your target (you can set too) close orders at same time.
+It's a EA (Expert Advisor) for MetaTrader4, use to trade on two or more brokers, check the price with difference broker, if the price difference is big enough (you can set), open order on these brokers at same time, one Buy order one Sell order, then when total profit greater than your target (you can set too) close orders at same time. It can run on any symbol.
 
 =Install=
 0. You need two brokers account and you must install MySQL 5.5 first
@@ -10,7 +10,7 @@ It's a EA (Expert Advisor) for MetaTrader4, use to trade on two or more brokers,
 2. Restart your two MateTrader4 terminal.
 3. Setup master client - new a chart in one of you MateTrader4, load "NST_MBT_Master"
 4. Setup slave client - new a chart in one of you MateTrader4, load "NST_MBT_Slave"
-
+5. ...
 
 
 to be continue....

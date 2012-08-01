@@ -121,7 +121,7 @@ void checkBadOrder()
 	string query = StringConcatenate(
 		"SELECT id,masterorderticket ",
 		"FROM `_command` ",
-		"WHERE slaveaccount=" + RemoteAccount + " AND slavebroker='" +  RemoteBroker + "' AND symbol='"+mInfo[20]+"' AND slaveorderstatus=3"
+		"WHERE slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=3"
 	);
 
 	int result = mysqlFetchArray(dbConnectId, query, data);
