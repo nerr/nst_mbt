@@ -61,7 +61,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Slave";
-	eaInfo[1]	= "0.1.3 [dev]";
+	eaInfo[1]	= "0.1.4 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 	
 	//-- get market information
