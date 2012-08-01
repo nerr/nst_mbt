@@ -20,6 +20,7 @@
  * v0.1.6  [dev] 2012-07-31 adjust param
  * v0.1.7  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.8  [dev] 2012-08-01 update relation sql string, add masteraccount and masterbroker field.
+ * v0.1.9  [dev] 2012-08-01 fix checkbakorder bug.
  *
  * @Todo
  * # add money mangment
@@ -69,7 +70,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.1.7 [dev]";
+	eaInfo[1]	= "0.1.8 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -157,9 +158,9 @@ void checkBadOrder()
 				else	//-- bet begin, may be lost may be win.....
 				{
 					if(OrderType()==OP_BUY)
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), Bid-Point*10, Bid+Point*5, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*10, OrderOpenPrice()+Point*5, 1);
 					else
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), Ask+Point*10, Ask-Point*5, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*10, OrderOpenPrice()-Point*5, 1);
 				}
 				//-- update to db
 				if(oStatus==true)
@@ -195,7 +196,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)"				);
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)");
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
 			}
