@@ -21,6 +21,7 @@
  * v0.1.7  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.8  [dev] 2012-08-01 update relation sql string, add masteraccount and masterbroker field.
  * v0.1.9  [dev] 2012-08-01 fix checkbakorder bug.
+ * v0.2.0  [dev] 2012-08-02 add an alert output when re-connect db fail.
  *
  * @Todo
  * # add money mangment
@@ -70,7 +71,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.1.9 [dev]";
+	eaInfo[1]	= "0.2.0 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -79,7 +80,11 @@ int init()
 	//-- connect mysql
 	goodConnect = connectdb();
 
-	if(!goodConnect) return (1);
+	if(!goodConnect)
+	{
+		outputLog("connect db failed", "Error");
+		return (1);
+	}
 
 	//-- calu thold pips
 	if(StrToInteger(mInfo[21]) < 4)
@@ -117,7 +122,15 @@ int start()
 
 	//-- reconnect mysql per hour
 	if((TimeLocal() % 3600)==0)
-		connectdb();
+	{
+		goodConnect = connectdb();
+
+		if(!goodConnect)
+		{
+			outputLog("connect db failed", "Error");
+			return (1);
+		}
+	}
 	
 	return(0);
 }
@@ -521,7 +534,7 @@ int connectdb()
 		mysqlDeinit(dbConnectId);
 
 	//-- connect mysql
-	int result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
 
 	return (result);
 }

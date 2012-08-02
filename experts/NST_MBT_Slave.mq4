@@ -20,6 +20,7 @@
  * v0.1.2  [dev] 2012-07-13 update order profit calu func.
  * v0.1.3  [dev] 2012-07-31 update table `_command`, add two field `masterbroker` and `masteraccount`
  * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
+ * v0.1.5  [dev] 2012-08-02 add an alert output when re-connect db fail.
  * 
  * `command` comment
  * commandtype:
@@ -61,7 +62,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Slave";
-	eaInfo[1]	= "0.1.4 [dev]";
+	eaInfo[1]	= "0.1.5 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 	
 	//-- get market information
@@ -70,7 +71,12 @@ int init()
 	//-- connect mysql
 	goodConnect = connectdb();
 
-	if(!goodConnect) return (1);
+	if(!goodConnect)
+	{
+		outputLog("connect db failed", "Error");
+		return (1);
+	}
+
 
 	//-- create price table if it not exists
 	string query = StringConcatenate(
@@ -153,7 +159,15 @@ int start()
 
 	//-- reconnect mysql per hour
 	if((TimeLocal() % 3600)==0)
-		connectdb();
+	{
+		goodConnect = connectdb();
+
+		if(!goodConnect)
+		{
+			outputLog("connect db failed", "Error");
+			return (1);
+		}
+	}
 
 	return(0);
 }
@@ -322,7 +336,7 @@ int connectdb()
 		mysqlDeinit(dbConnectId);
 
 	//-- connect mysql
-	int result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
 
 	return (result);
 }
