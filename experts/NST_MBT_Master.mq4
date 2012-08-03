@@ -121,7 +121,7 @@ int start()
 	updateDubugInfo();
 
 	//-- reconnect mysql per hour
-	if((TimeLocal() % 3600)==0)
+	/*if((TimeLocal() % 3600)==0)
 	{
 		goodConnect = connectdb();
 
@@ -130,7 +130,7 @@ int start()
 			outputLog("connect db failed", "Error");
 			return (1);
 		}
-	}
+	}*/
 	
 	return(0);
 }
@@ -177,7 +177,7 @@ void checkBadOrder()
 				}
 				//-- update to db
 				if(oStatus==true)
-					mysqlQuery(dbConnectId, "UPDATE `_command SET slaveorderstatus=2 WHERE id=" + commandid);
+					mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
 			}
 		}
 	}

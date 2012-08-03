@@ -158,7 +158,7 @@ int start()
 	watermark_slave(eaInfo, localPrice, localTimeCurrent, mInfo);
 
 	//-- reconnect mysql per hour
-	if((TimeLocal() % 3600)==0)
+	/*if((TimeLocal() % 3600)==0)
 	{
 		goodConnect = connectdb();
 
@@ -167,7 +167,7 @@ int start()
 			outputLog("connect db failed", "Error");
 			return (1);
 		}
-	}
+	}*/
 
 	return(0);
 }
