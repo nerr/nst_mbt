@@ -22,6 +22,7 @@
  * v0.1.8  [dev] 2012-08-01 update relation sql string, add masteraccount and masterbroker field.
  * v0.1.9  [dev] 2012-08-01 fix checkbakorder bug.
  * v0.2.0  [dev] 2012-08-02 add an alert output when re-connect db fail.
+ * v0.2.1  [dev] 2012-08-03 fix checkbadorder() func bug, sql and stoploss.
  *
  * @Todo
  * # add money mangment
@@ -71,7 +72,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.0 [dev]";
+	eaInfo[1]	= "0.2.1 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -171,9 +172,11 @@ void checkBadOrder()
 				else	//-- bet begin, may be lost may be win.....
 				{
 					if(OrderType()==OP_BUY)
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*10, OrderOpenPrice()+Point*5, 1);
+						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*10, OrderOpenPrice()+Point*5, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), 0, OrderOpenPrice()+Point*50, 1);
 					else
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*10, OrderOpenPrice()-Point*5, 1);
+						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*10, OrderOpenPrice()-Point*5, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), 0, OrderOpenPrice()-Point*50, 1);
 				}
 				//-- update to db
 				if(oStatus==true)
