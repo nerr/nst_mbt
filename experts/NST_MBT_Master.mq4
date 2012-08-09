@@ -23,6 +23,7 @@
  * v0.1.9  [dev] 2012-08-01 fix checkbakorder bug.
  * v0.2.0  [dev] 2012-08-02 add an alert output when re-connect db fail.
  * v0.2.1  [dev] 2012-08-03 fix checkbadorder() func bug, sql and stoploss.
+ * v0.2.2  [dev] 2012-08-08	update scanOpportunity() func add tholdpips param.
  *
  * @Todo
  * # add money mangment
@@ -72,7 +73,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.1 [dev]";
+	eaInfo[1]	= "0.2.2 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
