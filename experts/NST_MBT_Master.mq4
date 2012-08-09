@@ -195,10 +195,12 @@ void scanOpportunity()
 	int mutiple, ordert;
 	string query;
 	string comment;
+	datetime currenttime;
 
 	//-- open order
 	if(priceDifferenceBuy[0] > TholdPips)
 	{
+		currenttime = TimeLocal();
 		mutiple = MathFloor(priceDifferenceBuy[0]/TholdPips);
 		if(mutiple>currentLevel)
 		{
@@ -211,8 +213,8 @@ void scanOpportunity()
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
-					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)");
+					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime) VALUES ",
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+")");
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
 			}
@@ -220,6 +222,7 @@ void scanOpportunity()
 	}
 	else if(priceDifferenceSell[0] > TholdPips)
 	{
+		currenttime = TimeLocal();
 		mutiple = MathFloor(priceDifferenceSell[0]/TholdPips);
 		if(mutiple>currentLevel)
 		{
@@ -232,8 +235,8 @@ void scanOpportunity()
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
-					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0)"
+					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime) VALUES ",
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;

@@ -21,6 +21,7 @@
  * v0.1.3  [dev] 2012-07-31 update table `_command`, add two field `masterbroker` and `masteraccount`
  * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.5  [dev] 2012-08-02 add an alert output when re-connect db fail.
+ * v0.1.6  [dev] 2012-08-02	update table `_command` add two fields, consummate "orderAction()" func.
  * 
  * `command` comment
  * commandtype:
@@ -33,7 +34,7 @@
 #property copyright "Copyright ? 2012 Nerrsoft.com"
 #property link      "http://nerrsoft.com"
 
-
+//-- extern var
 extern string 	DBSetting		= "---------DB Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -48,6 +49,7 @@ string eaInfo[3];
 string 		mInfo[22];
 double 		localPrice[2];
 datetime 	localTimeCurrent;
+double 		basepip;
 
 //-- include mysql wrapper
 #include <mysql_v2.0.5.mqh>
@@ -62,7 +64,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Slave";
-	eaInfo[1]	= "0.1.5 [dev]";
+	eaInfo[1]	= "0.1.6 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 	
 	//-- get market information
@@ -99,9 +101,9 @@ int init()
 	query = StringConcatenate(
 		"CREATE TABLE IF NOT EXISTS `_command` (",
 		"`id`  int(11) NOT NULL AUTO_INCREMENT ,",
-		"`masterbroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`masterbroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' ,",
 		"`masteraccount`  int(10) NOT NULL ,",
-		"`slavebroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`slavebroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' ,",
 		"`slaveaccount`  int(10) NOT NULL ,",
 		"`symbol`  varchar(6) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,",
 		"`commandtype`  tinyint(4) UNSIGNED NOT NULL ,",
@@ -112,16 +114,18 @@ int init()
 		"`slaveorderticket`  int(11) NULL DEFAULT NULL ,",
 		"`slaveorderstatus`  tinyint(4) UNSIGNED NULL DEFAULT NULL ,",
 		"`slaveprofit`  float NULL DEFAULT NULL ,",
+		"`createtime`  int(11) NULL DEFAULT NULL ,",
+		"`tholdpips`  float NULL DEFAULT NULL ,",
 		"PRIMARY KEY (`id`),",
 		"INDEX `idx_orderticket` (`masterorderticket`, `slaveorderticket`) USING BTREE ,",
 		"INDEX `idx_orderstatus` (`commandtype`, `slaveorderstatus`) USING BTREE ,",
-		"INDEX `idx_brokeraccountsymbol` (`slavebroker`, `slaveaccount`, `symbol`) USING BTREE" ,
+		"INDEX `idx_brokeraccountsymbol` (`slavebroker`, `slaveaccount`, `symbol`) USING BTREE ",
 		")",
 		"ENGINE=InnoDB ",
 		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci ",
 		"COMMENT=\'commandtype:[0-buy][1-sell][2-close]\r\norderstatus:[1-opened][2-closed][3-open order failed][4-close order failed]\' ",
 		"AUTO_INCREMENT=1 ",
-		"ROW_FORMAT=COMPACT"
+		"ROW_FORMAT=COMPACT "
 	);
 	mysqlQuery(dbConnectId, query);
 
@@ -131,6 +135,12 @@ int init()
 		"VALUES (\'" + mInfo[1] + "\', " + mInfo[15] + ")"
 	);
 	mysqlQuery(dbConnectId,query);
+
+	//-- base pip
+	if(StrToInteger(mInfo[21]) < 4)
+		basepip = 0.01;
+	else
+		basepip = 0.0001;
 
 	return(0);
 }
@@ -176,7 +186,7 @@ void checkTradeCommand()
 {
 	string data[][8];
 	string query = StringConcatenate(
-		"SELECT id,commandtype,masterorderticket,masteropenprice,pricedifference,lots,slaveorderstatus,slaveorderticket ",
+		"SELECT id,commandtype,masterorderticket,masteropenprice,pricedifference,lots,slaveorderstatus,slaveorderticket,createtime,tholdpips ",
 		"FROM `_command` WHERE (slaveorderstatus<2 OR slaveorderstatus>3) AND slavebroker=\'" + mInfo[1] + "\' AND slaveaccount=" + mInfo[15] + " AND symbol=\'" + mInfo[20] + "\'"
 	);
 	int result = mysqlFetchArray(dbConnectId, query, data);
@@ -205,16 +215,37 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 	double lots 			= StrToDouble(d[key][5]);
 	double pricedifference	= StrToDouble(d[key][4]);
 	double masteropenprice	= StrToDouble(d[key][3]);
+	int currenttime			= StrToInteger(d[key][8]);
 
 	switch(slaveorderstatus)
 	{
 		case 0: //- new command, need open order
+			//-- check time available
+			if((TimeLocal() - currenttime) > 5)
+			{
+				respondCommand(3, commandid);
+				break;
+			}
+
+			//-- todo
 			//-- get open price
 			double openprice;
 			if(commandtype==0)
+			{
 				openprice = Ask;
+				if(masteropenprice - openprice < 0.0005)
+				{
+
+				}
+			}
 			else if(commandtype==1)
+			{
 				openprice = Bid;
+				if(openprice - masteropenprice < 0.0005)
+				{
+
+				}
+			}
 
 			//-- send open order command
 			int orderId = OrderSend(mInfo[20], commandtype, lots, openprice, 3, 0, 0, "", magicnumber, 0);
@@ -222,7 +253,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 			if(orderId>0)
 				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderticket=" + orderId + ", slaveorderstatus=1" + " WHERE id=" + commandid);
 			else
-				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=3 WHERE id=" + commandid);
+				respondCommand(3, commandid);
 
 			break;
 		case 1: //- opened order, waitting for close
@@ -239,9 +270,9 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 
 					//-- send open order command
 					if(OrderClose(slaveorderticket, OrderLots(), closeprice, 3) == true)
-						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+						respondCommand(2, commandid);
 					else
-						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=4 WHERE id=" + commandid);
+						respondCommand(4, commandid);
 				}
 			}
 			break;
@@ -259,13 +290,13 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 
 					//-- send open order command
 					if(OrderClose(OrderTicket(), OrderLots(), speccloseprice, 3) == true)
-						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+						respondCommand(2, commandid);
 					if(GetLastError()==4108)
-						mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+						respondCommand(2, commandid);
 				}
 				else
 				{
-					mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
+					respondCommand(2, commandid);
 				}
 			}
 			break;
@@ -275,10 +306,12 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 
 void updateProfitToDb()
 {
+	int slaveorderticket, commandid;
+
 	string data[][12];
 	string query = StringConcatenate(
-		"SELECT * ",
-		"FROM `_command` WHERE slaveorderstatus=1"
+		"SELECT id,slaveorderticket ",
+		"FROM `_command` WHERE slaveorderstatus=1 AND commandtype<2 AND slavebroker=\'" + mInfo[1] + "\' AND slaveaccount=" + mInfo[15]
 	);
 
 	int result = mysqlFetchArray(dbConnectId, query, data);
@@ -286,16 +319,16 @@ void updateProfitToDb()
 	if(result>0)
 	{
 		int rows = ArrayRange(data, 0);
-		int cols = ArrayRange(data, 1);
 		double profit = 0;
 
 		for(int i = 0; i < rows; i++)
 		{
-			int slaveorderticket = StrToInteger(data[i][9]);
+			slaveorderticket = StrToInteger(data[i][1]);
+			commandid = StrToInteger(data[i][0]);
 			if(OrderSelect(slaveorderticket, SELECT_BY_TICKET)==true)
 			{
 				profit = OrderProfit() + OrderSwap() + OrderCommission();
-				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveprofit=" + profit + " WHERE id=" + data[i][0]);
+				mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveprofit=" + profit + " WHERE id=" + commandid);
 			}
 		}
 	}
@@ -324,7 +357,7 @@ void updatePriceToDb()
 	string query = StringConcatenate(
 		"UPDATE `" + mInfo[20] + "` ",
 		"SET timecurrent=" + localTimeCurrent + ", bidprice=" + localPrice[0] + ", askprice=" + localPrice[1] + " ",
-		"WHERE account='" + mInfo[15] + "' and broker=\'" +  mInfo[1] + "\'"
+		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
 	);
 	mysqlQuery(dbConnectId, query);
 }
@@ -339,4 +372,9 @@ int connectdb()
 	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
 
 	return (result);
+}
+
+void respondCommand(int status, int id)
+{
+	mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=" + status + " WHERE id=" + id);
 }
