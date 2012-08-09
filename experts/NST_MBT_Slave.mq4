@@ -216,6 +216,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 	double pricedifference	= StrToDouble(d[key][4]);
 	double masteropenprice	= StrToDouble(d[key][3]);
 	int currenttime			= StrToInteger(d[key][8]);
+	double tholdpips		= StrToDouble(d[key][9]);
 
 	switch(slaveorderstatus)
 	{
@@ -223,8 +224,8 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 			//-- check time available
 			if((TimeLocal() - currenttime) > 5)
 			{
-				respondCommand(3, commandid);
-				break;
+				//respondCommand(3, commandid);
+				//break;
 			}
 
 			//-- todo
@@ -233,17 +234,19 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 			if(commandtype==0)
 			{
 				openprice = Ask;
-				if(masteropenprice - openprice < 0.0005)
+				if((masteropenprice - openprice) < (tholdpips / 2))
 				{
-
+					respondCommand(3, commandid);
+					break;
 				}
 			}
 			else if(commandtype==1)
 			{
 				openprice = Bid;
-				if(openprice - masteropenprice < 0.0005)
+				if((openprice - masteropenprice) < (tholdpips / 2))
 				{
-
+					respondCommand(3, commandid);
+					break;
 				}
 			}
 
