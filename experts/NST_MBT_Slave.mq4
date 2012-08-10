@@ -311,7 +311,7 @@ void updateProfitToDb()
 {
 	int slaveorderticket, commandid;
 
-	string data[][12];
+	string data[][2];
 	string query = StringConcatenate(
 		"SELECT id,slaveorderticket ",
 		"FROM `_command` WHERE slaveorderstatus=1 AND commandtype<2 AND slavebroker=\'" + mInfo[1] + "\' AND slaveaccount=" + mInfo[15]
