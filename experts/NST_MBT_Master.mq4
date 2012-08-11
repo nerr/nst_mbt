@@ -121,18 +121,6 @@ int start()
 	
 	//-- output into to chart
 	updateDubugInfo();
-
-	//-- reconnect mysql per hour
-	/*if((TimeLocal() % 3600)==0)
-	{
-		goodConnect = connectdb();
-
-		if(!goodConnect)
-		{
-			outputLog("connect db failed", "Error");
-			return (1);
-		}
-	}*/
 	
 	return(0);
 }
