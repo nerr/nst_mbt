@@ -167,18 +167,6 @@ int start()
 	//-- output infarmation into to chart
 	watermark_slave(eaInfo, localPrice, localTimeCurrent, mInfo);
 
-	//-- reconnect mysql per hour
-	/*if((TimeLocal() % 3600)==0)
-	{
-		goodConnect = connectdb();
-
-		if(!goodConnect)
-		{
-			outputLog("connect db failed", "Error");
-			return (1);
-		}
-	}*/
-
 	return(0);
 }
 

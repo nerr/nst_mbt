@@ -23,10 +23,10 @@
  * v0.1.9  [dev] 2012-08-01 fix checkbakorder bug.
  * v0.2.0  [dev] 2012-08-02 add an alert output when re-connect db fail.
  * v0.2.1  [dev] 2012-08-03 fix checkbadorder() func bug, sql and stoploss.
- * v0.2.2  [dev] 2012-08-08	update scanOpportunity() func add tholdpips param.
+ * v0.2.2  [dev] 2012-08-08 update scanOpportunity() func add tholdpips param.
+ * v0.2.3  [dev] 2012-08-16 fix a sql string typo
  *
- * @Todo
- * # add money mangment
+ *
  */
 
 //-- property info
@@ -58,7 +58,7 @@ double 		localPrice[2], remotePrice[2];
 double 		priceDifferenceBuy[3], priceDifferenceSell[3];
 datetime 	localTimeCurrent, remoteTimeCurrent;
 bool 		HaveOrder = false;
-int 		currentLevel = 0; 
+int 		currentLevel = 0;
 
 //-- include mysql wrapper
 #include <mysql_v2.0.5.mqh>
@@ -121,18 +121,6 @@ int start()
 	
 	//-- output into to chart
 	updateDubugInfo();
-
-	//-- reconnect mysql per hour
-	/*if((TimeLocal() % 3600)==0)
-	{
-		goodConnect = connectdb();
-
-		if(!goodConnect)
-		{
-			outputLog("connect db failed", "Error");
-			return (1);
-		}
-	}*/
 	
 	return(0);
 }
@@ -215,7 +203,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
