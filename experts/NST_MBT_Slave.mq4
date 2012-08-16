@@ -21,7 +21,7 @@
  * v0.1.3  [dev] 2012-07-31 update table `_command`, add two field `masterbroker` and `masteraccount`
  * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.5  [dev] 2012-08-02 add an alert output when re-connect db fail.
- * v0.1.6  [dev] 2012-08-02	update table `_command` add two fields, consummate "orderAction()" func.
+ * v0.1.6  [dev] 2012-08-02	update table `_command` add two fields, consummate "orderAction()" func.[test]
  * 
  * `command` comment
  * commandtype:
