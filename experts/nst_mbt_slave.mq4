@@ -208,7 +208,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 
 	switch(slaveorderstatus)
 	{
-		case 0: //- new command, need open order
+		case 0: //- new command, need to open order
 			//-- check time available
 			if((TimeLocal() - currenttime) > 5)
 			{
@@ -224,6 +224,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				openprice = Ask;
 				if((masteropenprice - openprice) < (tholdpips / 2))
 				{
+					Alert("wrong price 1");
 					respondCommand(3, commandid);
 					break;
 				}
@@ -233,6 +234,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				openprice = Bid;
 				if((openprice - masteropenprice) < (tholdpips / 2))
 				{
+					Alert("wrong price 2");
 					respondCommand(3, commandid);
 					break;
 				}

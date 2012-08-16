@@ -225,7 +225,7 @@ void scanOpportunity()
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
-					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime) VALUES ",
+					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
 					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
