@@ -216,6 +216,10 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				//break;
 			}
 
+
+			//-- test
+			Alert(commandtype);
+
 			//-- todo
 			//-- get open price
 			double openprice;
