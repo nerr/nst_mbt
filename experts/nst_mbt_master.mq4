@@ -25,6 +25,7 @@
  * v0.2.1  [dev] 2012-08-03 fix checkbadorder() func bug, sql and stoploss.
  * v0.2.2  [dev] 2012-08-08 update scanOpportunity() func add tholdpips param.
  * v0.2.3  [dev] 2012-08-16 fix a sql string typo
+ * v0.2.4  [dev] 2012-08-20 add stop lose to bad order
  *
  *
  */
@@ -73,7 +74,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.2 [dev]";
+	eaInfo[1]	= "0.2.4 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -162,10 +163,10 @@ void checkBadOrder()
 				{
 					if(OrderType()==OP_BUY)
 						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*10, OrderOpenPrice()+Point*5, 1);
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), 0, OrderOpenPrice()+Point*50, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*500, OrderOpenPrice()+Point*50, 1);
 					else
 						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*10, OrderOpenPrice()-Point*5, 1);
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), 0, OrderOpenPrice()-Point*50, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*500, OrderOpenPrice()-Point*50, 1);
 				}
 				//-- update to db
 				if(oStatus==true)
@@ -500,25 +501,25 @@ void updateOrderInfoLine(int line, int level, int ticket, double profit, double 
 		line += 12; //11+1
 		int y = line * 15;
 
-		createTextObj(level+"_1", 5,	y, level);
-		createTextObj(level+"_2", 85,	y, ticket);
-		createTextObj(level+"_3", 165,	y, DoubleToStr(profit, 2));
-		createTextObj(level+"_4", 245,	y, DoubleToStr(target, 2));
+		createTextObj(ticket+"_1", 5,	y, level);
+		createTextObj(ticket+"_2", 85,	y, ticket);
+		createTextObj(ticket+"_3", 165,	y, DoubleToStr(profit, 2));
+		createTextObj(ticket+"_4", 245,	y, DoubleToStr(target, 2));
 	}
 	else
 	{
-		setTextObj(level+"_3", DoubleToStr(profit, 2));
-		setTextObj(level+"_4", DoubleToStr(target, 2));
+		setTextObj(ticket+"_3", DoubleToStr(profit, 2));
+		setTextObj(ticket+"_4", DoubleToStr(target, 2));
 	}
 }
 
-void deleteOrderInfoLine(int level)
+void deleteOrderInfoLine(int ticket)
 {
-	if(ObjectFind(level+"_1")>0)
+	if(ObjectFind(ticket+"_1")>0)
 	{
 		for(int i=1; i<5; i++)
 		{
-			ObjectDelete(level+"_"+i);
+			ObjectDelete(ticket+"_"+i);
 		}
 	}
 }
