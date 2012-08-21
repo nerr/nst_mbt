@@ -27,6 +27,7 @@
  * v0.2.3  [dev] 2012-08-16 fix a sql string typo
  * v0.2.4  [dev] 2012-08-20 add stop lose to bad order
  * v0.2.5  [dev] 2012-08-21 fix a sql typo in closeOrder() func (error 1103), add createOrderObj() func
+ * v0.2.6  [dev] 2012-08-21 recode displayOrderStatus() func
  *
  *
  */
@@ -75,7 +76,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.5 [dev]";
+	eaInfo[1]	= "0.2.6 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -244,6 +245,9 @@ void checkCurrentOrder()
 	double totalprofit, ordertarget;
 	int orderticket;
 
+	//-- remove all order object display
+	ObjectsDeleteAll(1, OBJ_TEXT);
+
 	string data[][3];
 	string query = StringConcatenate(
 		"SELECT slaveprofit,masterorderticket,slaveorderticket FROM `_command` ",
@@ -269,11 +273,10 @@ void checkCurrentOrder()
 				if(totalprofit > ordertarget)
 				{
 					closeOrder(orderticket, StrToInteger(data[i][2]));
-					//deleteOrderInfoLine(orderlevel);
 				}
 				else
 				{
-					//updateOrderInfoLine(i, orderlevel, orderticket, totalprofit, ordertarget);
+					displayOrderStatus(i, orderlevel, orderticket, totalprofit, ordertarget);
 				}
 			}
 		}
@@ -476,18 +479,6 @@ void updateDubugInfo()
 	setTextObj("table_row_10_col_3", BaseTarget);
 }
 
-void createOrderObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=White)
-{
-	if(ObjectFind(objName)<0)
-	{
-		ObjectCreate(objName, OBJ_TEXT, 0, 0, 0);
-		ObjectSetText(objName, objText, fontsize, font, fontcolor);
-		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
-		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
-	}
-}
-
-
 void createTextObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=GreenYellow)
 {
 	if(ObjectFind(objName)<0)
@@ -507,36 +498,6 @@ void setTextObj(string objName, string objText="", string font="Courier New", in
 	}
 }
 
-void updateOrderInfoLine(int line, int level, int ticket, double profit, double target)
-{
-	if(ObjectFind(level+"1")<0)
-	{
-		line += 12; //11+1
-		int y = line * 15;
-
-		createTextObj(ticket+"_1", 5,	y, level);
-		createTextObj(ticket+"_2", 85,	y, ticket);
-		createTextObj(ticket+"_3", 165,	y, DoubleToStr(profit, 2));
-		createTextObj(ticket+"_4", 245,	y, DoubleToStr(target, 2));
-	}
-	else
-	{
-		setTextObj(ticket+"_3", DoubleToStr(profit, 2));
-		setTextObj(ticket+"_4", DoubleToStr(target, 2));
-	}
-}
-
-void deleteOrderInfoLine(int ticket)
-{
-	if(ObjectFind(ticket+"_1")>0)
-	{
-		for(int i=1; i<5; i++)
-		{
-			ObjectDelete(ticket+"_"+i);
-		}
-	}
-}
-
 int connectdb()
 {
 	//-- close connection if exists
@@ -547,4 +508,27 @@ int connectdb()
 	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
 
 	return (result);
+}
+
+//-- order obj display manage
+void displayOrderStatus(int line, int level, int ticket, double profit, double target)
+{
+	line += 13; //11+1+1
+	int y = line * 15;
+
+	createOrderObj(ticket+"_1", 5,	y, level);
+	createOrderObj(ticket+"_2", 85,	y, ticket);
+	createOrderObj(ticket+"_3", 165,y, DoubleToStr(profit, 2));
+	createOrderObj(ticket+"_4", 245,y, DoubleToStr(target, 2));
+}
+
+void createOrderObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=White)
+{
+	if(ObjectFind(objName)<0)
+	{
+		ObjectCreate(objName, OBJ_TEXT, 0, 0, 0);
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
+		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
+	}
 }
