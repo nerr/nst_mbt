@@ -26,6 +26,7 @@
  * v0.2.2  [dev] 2012-08-08 update scanOpportunity() func add tholdpips param.
  * v0.2.3  [dev] 2012-08-16 fix a sql string typo
  * v0.2.4  [dev] 2012-08-20 add stop lose to bad order
+ * v0.2.5  [dev] 2012-08-21 fix a sql typo in closeOrder() func (error 1103), add createOrderObj() func
  *
  *
  */
@@ -74,7 +75,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.4 [dev]";
+	eaInfo[1]	= "0.2.5 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -268,11 +269,11 @@ void checkCurrentOrder()
 				if(totalprofit > ordertarget)
 				{
 					closeOrder(orderticket, StrToInteger(data[i][2]));
-					deleteOrderInfoLine(orderlevel);
+					//deleteOrderInfoLine(orderlevel);
 				}
 				else
 				{
-					updateOrderInfoLine(i, orderlevel, orderticket, totalprofit, ordertarget);
+					//updateOrderInfoLine(i, orderlevel, orderticket, totalprofit, ordertarget);
 				}
 			}
 		}
@@ -363,7 +364,7 @@ void closeOrder(int ticket, int slaveticket)
 		{
 			//--close remote order
 			string query = StringConcatenate(
-				"UPDATE `_command SET commandtype=2 ",
+				"UPDATE `_command` SET commandtype=2 ",
 				"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND masterorderticket=" + ticket + " AND slaveorderticket=" + slaveticket + " AND slaveorderstatus=1"
 			);
 			mysqlQuery(dbConnectId, query);
@@ -474,6 +475,18 @@ void updateDubugInfo()
 	setTextObj("table_row_10_col_2", DoubleToStr(TholdPips, StrToInteger(mInfo[21])));
 	setTextObj("table_row_10_col_3", BaseTarget);
 }
+
+void createOrderObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=White)
+{
+	if(ObjectFind(objName)<0)
+	{
+		ObjectCreate(objName, OBJ_TEXT, 0, 0, 0);
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
+		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
+	}
+}
+
 
 void createTextObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=GreenYellow)
 {
