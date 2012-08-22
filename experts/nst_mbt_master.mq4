@@ -28,6 +28,7 @@
  * v0.2.4  [dev] 2012-08-20 add stop lose to bad order
  * v0.2.5  [dev] 2012-08-21 fix a sql typo in closeOrder() func (error 1103), add createOrderObj() func
  * v0.2.6  [dev] 2012-08-21 recode displayOrderStatus() func
+ * v0.3.0  [dev] 2012-08-22 fix order status display bug, change the brokers name.
  *
  *
  */
@@ -76,7 +77,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.2.6 [dev]";
+	eaInfo[1]	= "0.3.0 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -240,13 +241,13 @@ void scanOpportunity()
 
 void checkCurrentOrder()
 {
-	int index;
+	int index, line;
 	int orderlevel, maxlevel;
 	double totalprofit, ordertarget;
 	int orderticket;
 
 	//-- remove all order object display
-	ObjectsDeleteAll(1, OBJ_TEXT);
+	deleteOrderStatus();
 
 	string data[][3];
 	string query = StringConcatenate(
@@ -257,6 +258,7 @@ void checkCurrentOrder()
 	if(result>0)
 	{
 		int rows = ArrayRange(data, 0);
+		line = 0;
 		for(int i = 0; i < rows; i++)
 		{
 			orderticket = StrToInteger(data[i][1]);
@@ -276,7 +278,9 @@ void checkCurrentOrder()
 				}
 				else
 				{
-					displayOrderStatus(i, orderlevel, orderticket, totalprofit, ordertarget);
+					if(line<11)
+						displayOrderStatus(line, orderlevel, orderticket, totalprofit, ordertarget);
+					line++;
 				}
 			}
 		}
@@ -397,14 +401,14 @@ void initDebugInfo()
 	createTextObj("table_row_1_col_5", 325,	y, "Ask");
 	//-- line 2
 	y += 15;
-	createTextObj("table_row_2_col_1", 5,	y, "Local", "Courier New", 9, White);
+	createTextObj("table_row_2_col_1", 5,	y, "Master", "Courier New", 9, White);
 	createTextObj("table_row_2_col_2", 55,	y, mInfo[15], "Courier New", 9, White);
 	createTextObj("table_row_2_col_3", 115,	y);
 	createTextObj("table_row_2_col_4", 260,	y);
 	createTextObj("table_row_2_col_5", 325,	y);
 	//-- line 3
 	y += 15;
-	createTextObj("table_row_3_col_1", 5,	y, "Remote", "Courier New", 9, White);
+	createTextObj("table_row_3_col_1", 5,	y, "Slave", "Courier New", 9, White);
 	createTextObj("table_row_3_col_2", 55,	y, RemoteAccount, "Courier New", 9, White);
 	createTextObj("table_row_3_col_3", 115,	y);
 	createTextObj("table_row_3_col_4", 260,	y);
@@ -516,19 +520,22 @@ void displayOrderStatus(int line, int level, int ticket, double profit, double t
 	line += 13; //11+1+1
 	int y = line * 15;
 
-	createOrderObj(ticket+"_1", 5,	y, level);
-	createOrderObj(ticket+"_2", 85,	y, ticket);
-	createOrderObj(ticket+"_3", 165,y, DoubleToStr(profit, 2));
-	createOrderObj(ticket+"_4", 245,y, DoubleToStr(target, 2));
+	createTextObj(line+"_0", 5,  y, level, "Courier New", 9, White);
+	createTextObj(line+"_1", 85, y, ticket,  "Courier New", 9, White);
+	createTextObj(line+"_2", 165,y, DoubleToStr(profit, 2), "Courier New", 9, White);
+	createTextObj(line+"_3", 245,y, DoubleToStr(target, 2), "Courier New", 9, White);
 }
 
-void createOrderObj(string objName, int xDistance, int yDistance, string objText="", string font="Courier New", int fontsize=9, color fontcolor=White)
+void deleteOrderStatus()
 {
-	if(ObjectFind(objName)<0)
+	for(int i=13; i<23; i++)
 	{
-		ObjectCreate(objName, OBJ_TEXT, 0, 0, 0);
-		ObjectSetText(objName, objText, fontsize, font, fontcolor);
-		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
-		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
+		for(int j=0; j<4; j++)
+		{	
+			if(ObjectFind(i+"_"+j)>-1)
+			{
+				ObjectDelete(i+"_"+j);
+			}
+		}
 	}
 }
