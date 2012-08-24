@@ -216,10 +216,6 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				//break;
 			}
 
-
-			//-- test
-			Alert(commandtype);
-
 			//-- todo
 			//-- get open price
 			double openprice;
@@ -228,7 +224,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				openprice = Ask;
 				if((masteropenprice - openprice) < (tholdpips / 2))
 				{
-					Alert("wrong price 1");
+					Alert("Buy "+mInfo[20]+" slippage, open order failed. ");
 					respondCommand(3, commandid);
 					break;
 				}
@@ -238,7 +234,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 				openprice = Bid;
 				if((openprice - masteropenprice) < (tholdpips / 2))
 				{
-					Alert("wrong price 2");
+					Alert("Sell "+mInfo[20]+" slippage, open order failed. ");
 					respondCommand(3, commandid);
 					break;
 				}
@@ -266,7 +262,7 @@ void orderAction(string d[][], int key) //-- todo: check price difference
 						closeprice = Ask;
 
 					//-- send open order command
-					if(OrderClose(slaveorderticket, OrderLots(), closeprice, 3) == true)
+					if(OrderClose(slaveorderticket, OrderLots(), closeprice, 3)==true)
 						respondCommand(2, commandid);
 					else
 						respondCommand(4, commandid);
