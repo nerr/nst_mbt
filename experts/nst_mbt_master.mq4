@@ -29,6 +29,7 @@
  * v0.2.5  [dev] 2012-08-21 fix a sql typo in closeOrder() func (error 1103), add createOrderObj() func
  * v0.2.6  [dev] 2012-08-21 recode displayOrderStatus() func
  * v0.3.0  [dev] 2012-08-22 fix order status display bug, change the brokers name.
+ * v0.3.1  [dev] 2012-08-27 add a extern pricetable for special symbol. (XAUUSD & XAUUSDpro)
  *
  *
  */
@@ -51,6 +52,7 @@ extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
 extern string 	pass			= "911911";
 extern string 	dbName			= "metatrader";
+extern string 	pricetable		= "";
 extern int 		port			= 3306;
 
 //-- The information of this EA
@@ -82,6 +84,10 @@ int init()
 
 	//-- get market information
 	getInfo(mInfo);
+
+	//-- price table
+	if(pricetable=="")
+		pricetable = mInfo[20];
 
 	//-- connect mysql
 	goodConnect = connectdb();
@@ -135,7 +141,7 @@ void checkBadOrder()
 	string query = StringConcatenate(
 		"SELECT id,masterorderticket ",
 		"FROM `_command` ",
-		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=3"
+		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+pricetable+"\' AND slaveorderstatus=3"
 	);
 
 	int result = mysqlFetchArray(dbConnectId, query, data);
@@ -207,7 +213,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
@@ -230,7 +236,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+mInfo[20]+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				currentLevel = mutiple;
@@ -252,7 +258,7 @@ void checkCurrentOrder()
 	string data[][3];
 	string query = StringConcatenate(
 		"SELECT slaveprofit,masterorderticket,slaveorderticket FROM `_command` ",
-		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+mInfo[20]+"\' AND slaveorderstatus=1"
+		"WHERE masteraccount=" + mInfo[15] + " AND masterbroker=\'" +  mInfo[1] + "\' AND slaveaccount=" + RemoteAccount + " AND slavebroker=\'" +  RemoteBroker + "\' AND symbol=\'"+pricetable+"\' AND slaveorderstatus=1"
 	);
 	int result = mysqlFetchArray(dbConnectId, query, data);
 	if(result>0)
@@ -312,7 +318,7 @@ void checkPriceDifference()
 
 	string data[][3];
 	string query = StringConcatenate(
-		"SELECT bidprice, askprice, timecurrent FROM `" + mInfo[20] + "` ",
+		"SELECT bidprice, askprice, timecurrent FROM `" + pricetable + "` ",
 		"WHERE account=" + RemoteAccount + " AND broker=\'" +  RemoteBroker + "\'"
 	);
 	int result = mysqlFetchArray(dbConnectId, query, data);
