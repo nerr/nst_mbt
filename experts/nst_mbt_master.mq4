@@ -30,6 +30,7 @@
  * v0.2.6  [dev] 2012-08-21 recode displayOrderStatus() func
  * v0.3.0  [dev] 2012-08-22 fix order status display bug, change the brokers name.
  * v0.3.1  [dev] 2012-08-27 add a extern pricetable for special symbol. (XAUUSD & XAUUSDpro)
+ * v0.3.2  [dev] 2012-08-27 add allow trade controller
  *
  *
  */
@@ -39,11 +40,12 @@
 #property link 		"http://nerrsoft.com"
 
 //-- extern var
+extern bool 	EnableTrade		= TRUE;
 extern string 	BaseSetting		= "---------Base Setting---------";
 extern double 	BaseLots		= 0.2;
 extern int 		BaseTarget		= 10;
 extern int 	  	MagicNumber		= 9999;
-extern double 	TholdPips		= 5;
+extern double 	TholdPips		= 25;
 extern string 	RemoteSetting	= "---------Remote Setting---------";
 extern string 	RemoteAccount	= "4149641";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
@@ -122,7 +124,8 @@ int start()
 	//-- calu price differece between two brokers
 	checkPriceDifference();
 	//-- open order
-	scanOpportunity();
+	if(EnableTrade==TRUE)
+		scanOpportunity();
 
 	//-- check current order profit, waitting for close order
 	checkCurrentOrder();
