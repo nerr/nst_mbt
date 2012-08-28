@@ -31,6 +31,7 @@
  * v0.3.0  [dev] 2012-08-22 fix order status display bug, change the brokers name.
  * v0.3.1  [dev] 2012-08-27 add a extern pricetable for special symbol. (XAUUSD & XAUUSDpro)
  * v0.3.2  [dev] 2012-08-27 add allow trade controller
+ * v0.3.3  [dev] 2012-08-28 add extern var BeginLevel use for control the open order tholdpips 
  *
  *
  */
@@ -45,11 +46,14 @@ extern string 	BaseSetting		= "---------Base Setting---------";
 extern double 	BaseLots		= 0.2;
 extern int 		BaseTarget		= 10;
 extern int 	  	MagicNumber		= 9999;
-extern double 	TholdPips		= 25;
-extern string 	RemoteSetting	= "---------Remote Setting---------";
-extern string 	RemoteAccount	= "4149641";
+extern double 	TholdPips		= 5.0;
+extern int 		BeginLevel		= 5;
+extern double 	StopLossPips	= 50.0;
+extern double 	TakeProfitPips	= 5.0;
+extern string 	RemoteSetting	= "---------Slave Setting---------";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
-extern string 	DBSetting		= "---------DB Setting---------";
+extern string 	RemoteAccount	= "4149641";
+extern string 	DBSetting		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
 extern string 	pass			= "911911";
@@ -81,7 +85,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.3.0 [dev]";
+	eaInfo[1]	= "0.3.3 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -204,7 +208,7 @@ void scanOpportunity()
 	{
 		currenttime = TimeLocal();
 		mutiple = MathFloor(priceDifferenceBuy[0]/TholdPips);
-		if(mutiple>currentLevel)
+		if(mutiple>=BeginLevel)
 		{
 			comment = mutiple;
 			sendAlert("Open Signal - Buy-"+mInfo[20]+"@" + priceDifferenceBuy[0] + "|L" + mutiple);
@@ -219,7 +223,7 @@ void scanOpportunity()
 					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
-				currentLevel = mutiple;
+				//currentLevel = mutiple;
 			}
 		}
 	}
@@ -227,7 +231,7 @@ void scanOpportunity()
 	{
 		currenttime = TimeLocal();
 		mutiple = MathFloor(priceDifferenceSell[0]/TholdPips);
-		if(mutiple>currentLevel)
+		if(mutiple>=BeginLevel)
 		{
 			comment = mutiple;
 			sendAlert("Open Signal - Sell-"+mInfo[20]+"@" + priceDifferenceSell[0] + "|L" + mutiple);
@@ -242,7 +246,7 @@ void scanOpportunity()
 					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
-				currentLevel = mutiple;
+				//currentLevel = mutiple;
 			}
 		}
 	}
