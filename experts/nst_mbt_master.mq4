@@ -31,7 +31,8 @@
  * v0.3.0  [dev] 2012-08-22 fix order status display bug, change the brokers name.
  * v0.3.1  [dev] 2012-08-27 add a extern pricetable for special symbol. (XAUUSD & XAUUSDpro)
  * v0.3.2  [dev] 2012-08-27 add allow trade controller
- * v0.3.3  [dev] 2012-08-28 add extern var BeginLevel use for control the open order tholdpips 
+ * v0.3.3  [dev] 2012-08-28 add extern var BeginLevel use for control the open order tholdpips
+ * v0.3.4  [dev] 2012-08-28 add extern var MinPip use for calculat for SL, TL and Tholdpips
  *
  *
  */
@@ -48,8 +49,10 @@ extern int 		BaseTarget		= 10;
 extern int 	  	MagicNumber		= 9999;
 extern double 	TholdPips		= 5.0;
 extern int 		BeginLevel		= 5;
+extern string 	SLAndTPSetting	= "---------SL and TP Setting---------";
 extern double 	StopLossPips	= 50.0;
 extern double 	TakeProfitPips	= 5.0;
+extern double 	MinPip			= 0.01;
 extern string 	RemoteSetting	= "---------Slave Setting---------";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
 extern string 	RemoteAccount	= "4149641";
@@ -85,7 +88,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.3.3 [dev]";
+	eaInfo[1]	= "0.3.4 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -105,10 +108,7 @@ int init()
 	}
 
 	//-- calu thold pips
-	if(StrToInteger(mInfo[21]) < 4)
-		TholdPips = TholdPips * 0.01;
-	else
-		TholdPips = TholdPips * 0.0001;
+	TholdPips = TholdPips * MinPip;
 
 	initDebugInfo();
 
@@ -179,10 +179,10 @@ void checkBadOrder()
 				{
 					if(OrderType()==OP_BUY)
 						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*10, OrderOpenPrice()+Point*5, 1);
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-Point*500, OrderOpenPrice()+Point*50, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()-MinPip*StopLossPips, OrderOpenPrice()+MinPip*TakeProfitPips, 1);
 					else
 						//oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*10, OrderOpenPrice()-Point*5, 1);
-						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+Point*500, OrderOpenPrice()-Point*50, 1);
+						oStatus = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice()+MinPip*StopLossPips, OrderOpenPrice()-MinPip*TakeProfitPips, 1);
 				}
 				//-- update to db
 				if(oStatus==true)
