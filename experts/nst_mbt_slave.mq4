@@ -22,7 +22,7 @@
  * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.5  [dev] 2012-08-02 add an alert output when re-connect db fail.
  * v0.1.6  [dev] 2012-08-02	update table `_command` add two fields, consummate "orderAction()" func.[test]
- * v0.1.7  [dev] 2012-08-28 update table `price` add blance and free margin field, use for calculat the margin safe or not.
+ * v0.1.7  [dev] 2012-08-28 update table `price` add balance and free margin field, use for calculat the margin safe or not.
  * 
  * `command` comment
  * commandtype:
@@ -51,6 +51,7 @@ string 		mInfo[22];
 double 		localPrice[2];
 datetime 	localTimeCurrent;
 double 		basepip;
+double 		balance, freemargin;
 
 //-- include mysql wrapper
 #include <mysql_v2.0.5.mqh>
@@ -89,7 +90,7 @@ int init()
 		"`timecurrent` int(10) NULL DEFAULT NULL ,",
 		"`bidprice` float NULL DEFAULT NULL ,",
 		"`askprice` float NULL DEFAULT NULL ,",
-		"`blance` float NULL DEFAULT NULL ,",
+		"`balance` float NULL DEFAULT NULL ,",
 		"`freemargin` float NULL DEFAULT NULL ,",
 		"PRIMARY KEY (`account`),",
 		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
@@ -346,13 +347,15 @@ void updatePriceToDb()
 		localPrice[1] = Ask;
 	else
 		localPrice[1] = 0;
-	
+
 	localTimeCurrent = TimeLocal(); //localTimeCurrent = TimeCurrent();
+	balance = AccountBalance();
+	freemargin = AccountFreeMargin();
 
 	//-- update to db
 	string query = StringConcatenate(
 		"UPDATE `" + mInfo[20] + "` ",
-		"SET timecurrent=" + localTimeCurrent + ", bidprice=" + localPrice[0] + ", askprice=" + localPrice[1] + " ",
+		"SET timecurrent=" + localTimeCurrent + ", bidprice=" + localPrice[0] + ", askprice=" + localPrice[1] + ", balance=" + balance + ", freemargin=" + freemargin + " ",
 		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
 	);
 	mysqlQuery(dbConnectId, query);
