@@ -22,6 +22,7 @@
  * v0.1.4  [dev] 2012-08-01 add connectdb() func, add reconnectdb in start() func.
  * v0.1.5  [dev] 2012-08-02 add an alert output when re-connect db fail.
  * v0.1.6  [dev] 2012-08-02	update table `_command` add two fields, consummate "orderAction()" func.[test]
+ * v0.1.7  [dev] 2012-08-28 update table `price` add blance and free margin field, use for calculat the margin safe or not.
  * 
  * `command` comment
  * commandtype:
@@ -64,7 +65,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST-MBT-Slave";
-	eaInfo[1]	= "0.1.6 [dev]";
+	eaInfo[1]	= "0.1.7 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 	
 	//-- get market information
@@ -83,11 +84,13 @@ int init()
 	//-- create price table if it not exists
 	string query = StringConcatenate(
 		"CREATE TABLE IF NOT EXISTS `" + mInfo[20] + "` (",
-		"`broker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
-		"`account`  int(10) NOT NULL ,",
-		"`timecurrent`  int(10) NULL DEFAULT NULL ,",
-		"`bidprice`  float NULL DEFAULT NULL ,",
-		"`askprice`  float NULL DEFAULT NULL ,",
+		"`broker` varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT \'\' ,",
+		"`account` int(10) NOT NULL ,",
+		"`timecurrent` int(10) NULL DEFAULT NULL ,",
+		"`bidprice` float NULL DEFAULT NULL ,",
+		"`askprice` float NULL DEFAULT NULL ,",
+		"`blance` float NULL DEFAULT NULL ,",
+		"`freemargin` float NULL DEFAULT NULL ,",
 		"PRIMARY KEY (`account`),",
 		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
 		")",
