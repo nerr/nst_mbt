@@ -33,6 +33,7 @@
  * v0.3.2  [dev] 2012-08-27 add allow trade controller
  * v0.3.3  [dev] 2012-08-28 add extern var BeginLevel use for control the open order tholdpips
  * v0.3.4  [dev] 2012-08-28 add extern var MinPip use for calculat for SL, TL and Tholdpips
+ * v0.3.5  [dev] 2012-08-30 add margin level safe check
  *
  *
  */
@@ -87,8 +88,8 @@ bool    goodConnect = false;
 //-- init
 int init()
 {
-	eaInfo[0]	= "NST-MBT-Master";
-	eaInfo[1]	= "0.3.4 [dev]";
+	eaInfo[0]	= "NST_MBT (Master)";
+	eaInfo[1]	= "0.3.5 [dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -213,6 +214,13 @@ void scanOpportunity()
 			comment = mutiple;
 			sendAlert("Open Signal - Buy-"+mInfo[20]+"@" + priceDifferenceBuy[0] + "|L" + mutiple);
 
+			//-- check margin level safe or not
+			if(checkMarginSafe(OP_BUY, BaseLots*mutiple)==false)
+			{
+				sendAlert("Out of safe margin level!");
+				return (0);
+			}
+
 			//-- open buy order and send a sell command to remote db
 			ordert = OrderSend(mInfo[20], OP_BUY, BaseLots*mutiple, localPrice[1], 0, 0, 0, comment, MagicNumber, 0, Blue);
 			if(ordert>0)
@@ -235,6 +243,13 @@ void scanOpportunity()
 		{
 			comment = mutiple;
 			sendAlert("Open Signal - Sell-"+mInfo[20]+"@" + priceDifferenceSell[0] + "|L" + mutiple);
+
+			//-- check margin level safe or not
+			if(checkMarginSafe(OP_SELL, BaseLots*mutiple)==false)
+			{
+				sendAlert("Out of safe margin level!");
+				return (0);
+			}
 
 			//-- open sell order and send a buy command to remote db
 			ordert = OrderSend(Symbol(), OP_SELL, BaseLots*mutiple, localPrice[0], 0, 0, 0, comment, MagicNumber, 0, Red);
@@ -551,4 +566,21 @@ void deleteOrderStatus()
 			}
 		}
 	}
+}
+
+
+bool checkMarginSafe(int cmd, double lots)
+{
+	double freemargin = AccountFreeMarginCheck(Symbol(), cmd, lots);
+	//-- if free margin less than 0 then return false
+	if(freemargin<=0)
+		return (false);
+	//-- margin level = equity / margin
+	//-- margin  = equity - free margin
+	//-- margin level = equity / (equity - free margin)
+	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
+	if(marginlevel>30) //-- safe margin level set to 3000%
+		return (true);
+	else
+		return (false);
 }
