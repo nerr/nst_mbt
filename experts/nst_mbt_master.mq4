@@ -88,8 +88,8 @@ bool    goodConnect = false;
 //-- init
 int init()
 {
-	eaInfo[0]	= "NST_MBT (Master)";
-	eaInfo[1]	= "0.3.5 [dev]";
+	eaInfo[0]	= "NST_MBT(Master)";
+	eaInfo[1]	= "0.3.5[dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -572,11 +572,11 @@ void deleteOrderStatus()
 bool checkMarginSafe(int cmd, double lots)
 {
 	double freemargin = AccountFreeMarginCheck(Symbol(), cmd, lots);
+
 	//-- if free margin less than 0 then return false
 	if(freemargin<=0)
 		return (false);
-	//-- margin level = equity / margin
-	//-- margin  = equity - free margin
+
 	//-- margin level = equity / (equity - free margin)
 	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
 	if(marginlevel>30) //-- safe margin level set to 3000%
