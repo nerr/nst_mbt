@@ -204,11 +204,14 @@ void scanOpportunity()
 	string comment;
 	datetime currenttime;
 
+	if(TholdPips==0)
+		sendAlert("Thold pips value is zero, check it why, as soon as maybe!");
+
 	//-- open order
 	if(priceDifferenceBuy[0] > TholdPips)
 	{
 		currenttime = TimeLocal();
-		mutiple = MathFloor(priceDifferenceBuy[0]/TholdPips);
+		mutiple = MathFloor(priceDifferenceBuy[0] / TholdPips);
 		if(mutiple>=BeginLevel)
 		{
 			comment = mutiple;
@@ -238,7 +241,7 @@ void scanOpportunity()
 	else if(priceDifferenceSell[0] > TholdPips)
 	{
 		currenttime = TimeLocal();
-		mutiple = MathFloor(priceDifferenceSell[0]/TholdPips);
+		mutiple = MathFloor(priceDifferenceSell[0] / TholdPips);
 		if(mutiple>=BeginLevel)
 		{
 			comment = mutiple;
