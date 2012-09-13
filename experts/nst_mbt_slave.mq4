@@ -109,7 +109,7 @@ int init()
 		"`masteraccount`  int(10) NOT NULL ,",
 		"`slavebroker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' ,",
 		"`slaveaccount`  int(10) NOT NULL ,",
-		"`symbol`  varchar(6) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,",
+		"`symbol`  varchar(9) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,",
 		"`commandtype`  tinyint(4) UNSIGNED NOT NULL ,",
 		"`masterorderticket`  int(11) NOT NULL ,",
 		"`masteropenprice`  float NULL DEFAULT NULL ,",
