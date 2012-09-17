@@ -35,6 +35,7 @@
  * v0.3.4  [dev] 2012-08-28 add extern var MinPip use for calculat for SL, TL and Tholdpips
  * v0.3.5  [dev] 2012-08-30 add margin level safe check
  * v0.3.6  [dev] 2012-09-17 add slave clent trade switch
+ * v0.3.7  [dev] 2012-09-17 fix close order color error
  *
  *
  */
@@ -58,8 +59,8 @@ extern double 	MinPip			= 0.01;
 extern string 	RemoteSetting	= "---------Slave Setting---------";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
 extern string 	RemoteAccount	= "4149641";
-extern bool 	EnableSlaveTrade= "FALSE";
-extern string 	DBSetting		= "---------MySQL Setting---------";
+extern bool 	EnableSlaveTrade= FALSE;
+extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
 extern string 	pass			= "911911";
@@ -91,7 +92,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.6[dev]";
+	eaInfo[1]	= "0.3.7[dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -174,9 +175,9 @@ void checkBadOrder()
 				if(OrderProfit()>0)
 				{
 					if(OrderType()==OP_BUY)
-						oStatus = OrderClose(OrderTicket(), OrderLots(), Bid, 1);
+						oStatus = OrderClose(OrderTicket(), OrderLots(), Bid, 1, Blue);
 					else
-						oStatus = OrderClose(OrderTicket(), OrderLots(), Ask, 1);
+						oStatus = OrderClose(OrderTicket(), OrderLots(), Ask, 1, Red);
 				}
 				else	//-- bet begin, may be lost may be win.....
 				{
@@ -396,15 +397,22 @@ void checkPriceDifference()
 void closeOrder(int ticket, int slaveticket)
 {
 	int closePrice;
+	color closeColor;
 
 	if(OrderSelect(ticket, SELECT_BY_TICKET)==true)
 	{
 		if(OrderType()==OP_BUY)
+		{
 			closePrice = 0;
+			closeColor = Blue;
+		}
 		else
+		{
 			closePrice = 1;
+			closeColor = Red;
+		}
 
-		if(OrderClose(OrderTicket(), OrderLots(), localPrice[closePrice], 3, Red )==true)
+		if(OrderClose(OrderTicket(), OrderLots(), localPrice[closePrice], 3, closeColor)==true)
 		{
 			//--close remote order
 			string query = StringConcatenate(
