@@ -34,6 +34,7 @@
  * v0.3.3  [dev] 2012-08-28 add extern var BeginLevel use for control the open order tholdpips
  * v0.3.4  [dev] 2012-08-28 add extern var MinPip use for calculat for SL, TL and Tholdpips
  * v0.3.5  [dev] 2012-08-30 add margin level safe check
+ * v0.3.6  [dev] 2012-09-17 add slave clent trade switch
  *
  *
  */
@@ -57,6 +58,7 @@ extern double 	MinPip			= 0.01;
 extern string 	RemoteSetting	= "---------Slave Setting---------";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
 extern string 	RemoteAccount	= "4149641";
+extern bool 	EnableSlaveTrade= "FALSE";
 extern string 	DBSetting		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -89,7 +91,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.5[dev]";
+	eaInfo[1]	= "0.3.6[dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -204,6 +206,10 @@ void scanOpportunity()
 	string comment;
 	datetime currenttime;
 
+	int slaveorderstatus = 0;
+	if(EnableSlaveTrade==FALSE)
+		slaveorderstatus = 3;
+
 	if(TholdPips==0)
 		sendAlert("Thold pips value is zero, check it why, as soon as maybe!");
 
@@ -231,7 +237,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				//currentLevel = mutiple;
@@ -261,7 +267,7 @@ void scanOpportunity()
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", 0, "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				//currentLevel = mutiple;
