@@ -36,6 +36,7 @@
  * v0.3.5  [dev] 2012-08-30 add margin level safe check
  * v0.3.6  [dev] 2012-09-17 add slave clent trade switch
  * v0.3.7  [dev] 2012-09-17 fix close order color error
+ * v0.3.8  [dev] 2012-09-18 add getLots() func, set max lots (10)
  *
  *
  */
@@ -92,7 +93,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.7[dev]";
+	eaInfo[1]	= "0.3.8[dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -224,21 +225,24 @@ void scanOpportunity()
 			comment = mutiple;
 			sendAlert("Open Signal - Buy-"+mInfo[20]+"@" + priceDifferenceBuy[0] + "|L" + mutiple);
 
+			//-- get lots
+			double lots = getLots(mutiple);
+
 			//-- check margin level safe or not
-			if(checkMarginSafe(OP_BUY, BaseLots*mutiple)==false)
+			if(checkMarginSafe(OP_BUY, lots)==false)
 			{
 				sendAlert("Out of safe margin level!");
 				return (0);
 			}
 
 			//-- open buy order and send a sell command to remote db
-			ordert = OrderSend(mInfo[20], OP_BUY, BaseLots*mutiple, localPrice[1], 0, 0, 0, comment, MagicNumber, 0, Blue);
+			ordert = OrderSend(mInfo[20], OP_BUY, lots, localPrice[1], 0, 0, 0, comment, MagicNumber, 0, Blue);
 			if(ordert>0)
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+BaseLots*mutiple+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 1, "+ordert+", "+localPrice[1]+", "+priceDifferenceBuy[0]+", "+lots+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				//currentLevel = mutiple;
@@ -254,21 +258,24 @@ void scanOpportunity()
 			comment = mutiple;
 			sendAlert("Open Signal - Sell-"+mInfo[20]+"@" + priceDifferenceSell[0] + "|L" + mutiple);
 
+			//-- get lots
+			double lots = getLots(mutiple);
+
 			//-- check margin level safe or not
-			if(checkMarginSafe(OP_SELL, BaseLots*mutiple)==false)
+			if(checkMarginSafe(OP_SELL, lots)==false)
 			{
 				sendAlert("Out of safe margin level!");
 				return (0);
 			}
 
 			//-- open sell order and send a buy command to remote db
-			ordert = OrderSend(Symbol(), OP_SELL, BaseLots*mutiple, localPrice[0], 0, 0, 0, comment, MagicNumber, 0, Red);
+			ordert = OrderSend(Symbol(), OP_SELL, lots, localPrice[0], 0, 0, 0, comment, MagicNumber, 0, Red);
 			if(ordert>0)
 			{
 				query = StringConcatenate(
 					"INSERT INTO `_command` ",
 					"(masteraccount, masterbroker, slavebroker, slaveaccount, symbol, commandtype, masterorderticket, masteropenprice, pricedifference, lots, slaveorderstatus, createtime, tholdpips) VALUES ",
-					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+BaseLots*mutiple+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
+					"("+mInfo[15]+", \'"+mInfo[1]+"\', \'" + RemoteBroker + "\', "+RemoteAccount+", \'"+pricetable+"\', 0, "+ordert+", "+localPrice[1]+", "+priceDifferenceSell[0]+", "+lots+", "+slaveorderstatus+", "+currenttime+", "+TholdPips+")"
 				);
 				mysqlQuery(dbConnectId,query);
 				//currentLevel = mutiple;
@@ -600,4 +607,14 @@ bool checkMarginSafe(int cmd, double lots)
 		return (true);
 	else
 		return (false);
+}
+
+double getLots(mutiple)
+{
+	double lots = BaseLots * mutiple;
+
+	if(lots>10)
+		lots = 10;
+
+	return(lots);
 }
