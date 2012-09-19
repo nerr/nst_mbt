@@ -207,6 +207,7 @@ void scanOpportunity()
 	string query;
 	string comment;
 	datetime currenttime;
+	double lots;
 
 	int slaveorderstatus = 0;
 	if(EnableSlaveTrade==FALSE)
@@ -226,7 +227,7 @@ void scanOpportunity()
 			sendAlert("Open Signal - Buy-"+mInfo[20]+"@" + priceDifferenceBuy[0] + "|L" + mutiple);
 
 			//-- get lots
-			double lots = getLots(mutiple);
+			lots = getLots(mutiple);
 
 			//-- check margin level safe or not
 			if(checkMarginSafe(OP_BUY, lots)==false)
@@ -259,7 +260,7 @@ void scanOpportunity()
 			sendAlert("Open Signal - Sell-"+mInfo[20]+"@" + priceDifferenceSell[0] + "|L" + mutiple);
 
 			//-- get lots
-			double lots = getLots(mutiple);
+			lots = getLots(mutiple);
 
 			//-- check margin level safe or not
 			if(checkMarginSafe(OP_SELL, lots)==false)
@@ -530,7 +531,7 @@ void updateDubugInfo()
 	setTextObj("table_row_7_col_3", DoubleToStr(priceDifferenceSell[1], digit));
 	setTextObj("table_row_7_col_4", DoubleToStr(priceDifferenceSell[2], digit));
 
-	setTextObj("table_row_10_col_1", DoubleToStr(BaseLots, 1));
+	setTextObj("table_row_10_col_1", DoubleToStr(BaseLots, 2));
 	setTextObj("table_row_10_col_2", DoubleToStr(TholdPips, StrToInteger(mInfo[21])));
 	setTextObj("table_row_10_col_3", BaseTarget);
 }
@@ -609,7 +610,7 @@ bool checkMarginSafe(int cmd, double lots)
 		return (false);
 }
 
-double getLots(mutiple)
+double getLots(int mutiple)
 {
 	double lots = BaseLots * mutiple;
 
