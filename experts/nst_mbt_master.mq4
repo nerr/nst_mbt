@@ -37,6 +37,7 @@
  * v0.3.6  [dev] 2012-09-17 add slave clent trade switch
  * v0.3.7  [dev] 2012-09-17 fix close order color error
  * v0.3.8  [dev] 2012-09-18 add getLots() func, set max lots (10)
+ * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
  *
  *
  */
@@ -93,7 +94,7 @@ bool    goodConnect = false;
 int init()
 {
 	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.8[dev]";
+	eaInfo[1]	= "0.3.9[dev]";
 	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
 
 	//-- get market information
@@ -193,6 +194,10 @@ void checkBadOrder()
 				if(oStatus==true)
 					mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
 			}
+		}
+		else
+		{
+			mysqlQuery(dbConnectId, "UPDATE `_command` SET slaveorderstatus=2 WHERE id=" + commandid);
 		}
 	}
 	else if(result<0)
