@@ -38,7 +38,7 @@
  * v0.3.7  [dev] 2012-09-17 fix close order color error
  * v0.3.8  [dev] 2012-09-18 add getLots() func, set max lots (10)
  * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
- *
+ * v0.5.0  [dev] 2012-11-07 a new version is begin, it will delete slave script, auto load account info from db never need setup manual.
  *
  */
 
@@ -70,9 +70,6 @@ extern string 	dbName			= "metatrader";
 extern string 	pricetable		= "";
 extern int 		port			= 3306;
 
-//-- The information of this EA
-string eaInfo[3];
-
 //-- global var
 string 		mInfo[22];
 double 		localPrice[2], remotePrice[2];
@@ -93,10 +90,6 @@ bool    goodConnect = false;
 //-- init
 int init()
 {
-	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.9[dev]";
-	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
-
 	//-- get market information
 	getInfo(mInfo);
 
