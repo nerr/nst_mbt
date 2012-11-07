@@ -47,7 +47,7 @@
 #property link 		"http://nerrsoft.com"
 
 //-- extern var
-extern bool 	EnableTrade		= TRUE;
+extern bool 	EnableTrade		= true;
 extern string 	BaseSetting		= "---------Base Setting---------";
 extern double 	BaseLots		= 0.2;
 extern int 		BaseTarget		= 10;
@@ -61,7 +61,7 @@ extern double 	MinPip			= 0.01;
 extern string 	RemoteSetting	= "---------Slave Setting---------";
 extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
 extern string 	RemoteAccount	= "4149641";
-extern bool 	EnableSlaveTrade= FALSE;
+extern bool 	EnableSlaveTrade= false;
 extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
