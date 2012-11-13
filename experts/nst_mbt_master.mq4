@@ -42,11 +42,23 @@
  *
  */
 
-//-- property info
+
+
+/* 
+ * property infomation
+ *
+ */
+
 #property copyright "Copyright ? 2012 Nerrsoft.com"
 #property link 		"http://nerrsoft.com"
 
-//-- extern var
+
+
+/* 
+ * define extern
+ *
+ */
+
 extern bool 	EnableTrade		= true;
 extern string 	BaseSetting		= "---------Base Setting---------";
 extern double 	BaseLots		= 0.2;
@@ -54,14 +66,10 @@ extern int 		BaseTarget		= 10;
 extern int 	  	MagicNumber		= 9999;
 extern double 	TholdPips		= 5.0;
 extern int 		BeginLevel		= 5;
-extern string 	SLAndTPSetting	= "---------SL and TP Setting---------";
 extern double 	StopLossPips	= 500.0;
 extern double 	TakeProfitPips	= 50.0;
 extern double 	MinPip			= 0.01;
-extern string 	RemoteSetting	= "---------Slave Setting---------";
-extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
-extern string 	RemoteAccount	= "4149641";
-extern bool 	EnableSlaveTrade= false;
+extern bool 	moneymanagment	= true;
 extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -70,22 +78,35 @@ extern string 	dbName			= "metatrader";
 extern string 	pricetable		= "";
 extern int 		port			= 3306;
 
-//-- global var
-string 		mInfo[22];
-double 		localPrice[2], remotePrice[2];
-double 		priceDifferenceBuy[3], priceDifferenceSell[3];
-datetime 	localTimeCurrent, remoteTimeCurrent;
-bool 		HaveOrder = false;
-int 		currentLevel = 0;
 
-//-- include mysql wrapper
+
+/* 
+ * Global variable
+ *
+ */
+
+string 		mInfo[22];
+int 		brokerNum;
+
+
+
+/* 
+ * include mysql wrapper
+ *
+ */
+
 #include <mysql_v2.0.5.mqh>
-int     socket   = 0;
-int     client   = 0;
-int     dbConnectId = 0;
-bool    goodConnect = false;
-//-- include common func
-#include <nerr_smart_trader_common.mqh>
+int		socket 		= 0;
+int		client 		= 0;
+int		dbConnectId = 0;
+bool	goodConnect = false;
+
+
+
+/* 
+ * System Funcs
+ *
+ */
 
 //-- init
 int init()
@@ -107,9 +128,11 @@ int init()
 	}
 
 	//-- calu thold pips
-	TholdPips = TholdPips * MinPip;
+	//TholdPips = TholdPips * MinPip;
 
-	initDebugInfo();
+	brokerNum = getBorkerNum(pricetable);
+
+	initDebugInfo(brokerNum);
 
 	return(0);
 }
@@ -125,21 +148,262 @@ int deinit()
 int start()
 {
 	//-- calu price differece between two brokers
-	checkPriceDifference();
+	//checkPriceDifference();
 	//-- open order
-	if(EnableTrade==TRUE)
-		scanOpportunity();
+	if(EnableTrade == true)
+		//scanOpportunity();
 
 	//-- check current order profit, waitting for close order
-	checkCurrentOrder();
+	//checkCurrentOrder();
 	//-- check bad order
-	checkBadOrder();
+	//checkBadOrder();
 	
 	//-- output into to chart
-	updateDubugInfo();
+	//updateDubugInfo();
 	
 	return(0);
 }
+
+
+
+/* 
+ * Price Funcs
+ *
+ */
+
+//-- 
+void updateThisBrokerPrice()
+{
+	//-- get information
+	double symbolprice[2];
+	datetime localtimes = TimeLocal();
+	double accountblance = AccountBalance();
+	double accountfreemargin = AccountFreeMargin();
+
+	RefreshRates();
+	if(Bid>0)
+		symbolprice[0] = Bid;
+	if(Ask>0)
+		symbolprice[1] = Ask;
+
+	//-- update to db
+	string query = StringConcatenate(
+		"UPDATE `" + mInfo[20] + "` ",
+		"SET timecurrent=" + localtimes + ", bidprice=" + symbolprice[0] + ", askprice=" + symbolprice[1] + ", balance=" + accountblance + ", freemargin=" + accountfreemargin + " ",
+		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
+	);
+	mysqlQuery(dbConnectId, query);
+}
+
+//--
+string readOtherBrokerPrice()
+{
+	string data[][3];
+	string query = StringConcatenate(
+		"SELECT bidprice, askprice, timecurrent FROM `" + pricetable + "` ",
+		"WHERE account=" + RemoteAccount + " AND broker=\'" +  RemoteBroker + "\'"
+	);
+
+	int result = mysqlFetchArray(dbConnectId, query, data);
+	if(result == 0)
+		outputLog("0 rows selected", "MySQL ERROR");
+	else if(result == -1)
+		outputLog("some error occured", "MySQL ERROR");
+	else
+	{
+		int rows = ArrayRange(data, 0);
+		int cols = ArrayRange(data, 1);
+
+		for(int i = 0; i < rows; i++)
+		{
+			for(int j = 0; j < cols; j++ ) {
+				pInfo[i][j] = data[i][j];
+			}
+		}
+	}
+
+
+}
+
+//--
+void checkTradeChance()
+{
+
+}
+
+
+
+
+
+/* 
+ * Order Funcs
+ *
+ */
+
+//-- check account marin level safe or not
+bool checkMarginSafe(int _cmd, double _lots)
+{
+	double freemargin = AccountFreeMarginCheck(Symbol(), _cmd, lots);
+
+	//-- if free margin less than 0 then return false
+	if(freemargin<=0)
+		return (false);
+
+	//-- margin level = equity / (equity - free margin)
+	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
+	if(marginlevel>30) //-- safe margin level set to 3000%
+		return (true);
+	else
+		return (false);
+}
+
+//-- use moneymanagment strategy get lots
+double calcuLots(int _digit = 2)
+{
+	if(moneymanagment==false)
+		return(BaseLots);
+
+	double lots, rate, kd;
+
+	kd = iCustom(NULL, 0, "Stochastic", kperiod, dperiod, kdslowing, 0, 0);
+
+	if(kd>75)
+		rate = 0.01;
+	else
+		rate = 0.005;
+
+	if(AccountFreeMargin()>0)
+	{
+		lots = (AccountFreeMargin() * rate) / stoploss;
+		lots = StrToDouble(DoubleToStr(lots, _digit));
+	}
+
+	return(lots);
+}
+
+
+
+/* 
+ * MySQL Funcs
+ *
+ */
+
+//-- connect to database
+int connectdb()
+{
+	//-- close connection if exists
+	if(dbConnectId>0)
+		mysqlDeinit(dbConnectId);
+
+	//-- connect mysql
+	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+
+	return (result);
+}
+
+//-- get brokers number
+int getBorkerNum(string _tablename)
+{
+	int rows = -1;
+	string data[][1];
+	string query = "SELECT broker FROM `" + _tablename + "`";
+	int result = mysqlFetchArray(dbConnectId, query, data);
+
+	if(result == 0)
+		outputLog("0 rows selected", "MySQL ERROR");
+	else if(result == -1)
+		outputLog("some error occured", "MySQL ERROR");
+	else
+		rows = ArrayRange(data, 0);
+
+	return(rows);
+}
+
+
+
+/* 
+ * Debug Funcs
+ *
+ */
+
+//-- output log
+void outputLog(string logtext, string type="Information")
+{
+	string text = ">>>" + type + ":" + logtext;
+	Print (text);
+}
+
+//-- send alert
+void sendAlert(string text = "null")
+{
+	outputLog(text);
+	PlaySound("alert.wav");
+	Alert(text);
+}
+
+//-- get all market information
+void getInfo(string &MInfo[])
+{
+	// get account type
+	if(IsDemo()) MInfo[0] = "Demo";
+	else MInfo[0] = "Real";
+	// get broker
+	MInfo[1] = TerminalCompany();
+	// get MT4 name
+	MInfo[2] = TerminalName();
+	// get server Time
+	MInfo[3] = TimeToStr(TimeCurrent(), TIME_DATE|TIME_SECONDS);
+	// get account balance
+	MInfo[4] = AccountBalance();
+	// get account credit
+	MInfo[5] = AccountCredit();
+	// get account company
+	MInfo[6] = AccountCompany();
+	// get account currency
+	MInfo[7] = AccountCurrency();
+	// get account equity
+	MInfo[8] = AccountEquity();
+	// get account free margin
+	MInfo[9] = AccountFreeMargin();
+	// get account free margin check
+	// MInfo[10] = AccountFreeMarginCheck(Symbol(),);
+	// get account free margin mode
+	MInfo[11] = AccountFreeMarginMode();
+	// get account leverage
+	MInfo[12] = AccountLeverage();
+	// get account margin
+	MInfo[13] = AccountMargin();
+	// get account nameh
+	MInfo[14] = AccountName();
+	// get account number
+	MInfo[15] = AccountNumber();
+	// get account profit
+	MInfo[16] = AccountProfit();
+	// get account server
+	MInfo[17] = AccountServer();
+	// get account stop out level
+	MInfo[18] = AccountStopoutLevel();
+	// get account stop out mode
+	MInfo[19] = AccountStopoutMode();
+	// get current symbol
+	MInfo[20] = Symbol();
+	// get mInfo[21]
+	MInfo[21] = MarketInfo(MInfo[20], MODE_DIGITS);
+}
+
+
+
+
+/*
+//-- global var
+string 		mInfo[22];
+double 		localPrice[2], remotePrice[2];
+double 		priceDifferenceBuy[3], priceDifferenceSell[3];
+datetime 	localTimeCurrent, remoteTimeCurrent;
+bool 		HaveOrder = false;
+int 		currentLevel = 0;
+
+
 
 void checkBadOrder()
 {
@@ -553,17 +817,6 @@ void setTextObj(string objName, string objText="", string font="Courier New", in
 	}
 }
 
-int connectdb()
-{
-	//-- close connection if exists
-	if(dbConnectId>0)
-		mysqlDeinit(dbConnectId);
-
-	//-- connect mysql
-	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
-
-	return (result);
-}
 
 //-- order obj display manage
 void displayOrderStatus(int line, int level, int ticket, double profit, double target)
@@ -592,28 +845,9 @@ void deleteOrderStatus()
 }
 
 
-bool checkMarginSafe(int cmd, double lots)
-{
-	double freemargin = AccountFreeMarginCheck(Symbol(), cmd, lots);
 
-	//-- if free margin less than 0 then return false
-	if(freemargin<=0)
-		return (false);
 
-	//-- margin level = equity / (equity - free margin)
-	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
-	if(marginlevel>30) //-- safe margin level set to 3000%
-		return (true);
-	else
-		return (false);
-}
 
-double getLots(int mutiple)
-{
-	double lots = BaseLots * mutiple;
 
-	if(lots>10)
-		lots = 10;
 
-	return(lots);
-}
+*/
