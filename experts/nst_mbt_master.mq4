@@ -90,6 +90,7 @@ int 		brokerNum;
 
 
 
+
 /* 
  * include mysql wrapper
  *
@@ -127,6 +128,13 @@ int init()
 		return (1);
 	}
 
+	//-- add a new record if table have no this broker
+	string query = StringConcatenate(
+		"INSERT IGNORE INTO `" + pricetable + "` (`broker`, `account`) ",
+		"VALUES (\'" + mInfo[1] + "\', " + mInfo[15] + ")"
+	);
+	mysqlQuery(dbConnectId, query);
+
 	//-- calu thold pips
 	//TholdPips = TholdPips * MinPip;
 
@@ -150,16 +158,18 @@ int start()
 	//-- calu price differece between two brokers
 	//checkPriceDifference();
 	//-- open order
-	if(EnableTrade == true)
+	//if(EnableTrade == true)
 		//scanOpportunity();
 
 	//-- check current order profit, waitting for close order
 	//checkCurrentOrder();
 	//-- check bad order
 	//checkBadOrder();
-	
-	//-- output into to chart
-	//updateDubugInfo();
+
+	updateThisBrokerPrice(pricetable);
+	readBrokersPrice(pricetable, brokerNum);
+
+
 	
 	return(0);
 }
@@ -172,13 +182,18 @@ int start()
  */
 
 //-- 
-void updateThisBrokerPrice()
+void updateThisBrokerPrice(string _tablename)
 {
 	//-- get information
 	double symbolprice[2];
 	datetime localtimes = TimeLocal();
 	double accountblance = AccountBalance();
 	double accountfreemargin = AccountFreeMargin();
+	double symbolspread = MarketInfo(mInfo[20], MODE_SPREAD);
+
+	//-- get real spread
+	if(Digits % 2 == 1)
+		symbolspread /= 10;
 
 	RefreshRates();
 	if(Bid>0)
@@ -188,21 +203,19 @@ void updateThisBrokerPrice()
 
 	//-- update to db
 	string query = StringConcatenate(
-		"UPDATE `" + mInfo[20] + "` ",
-		"SET timecurrent=" + localtimes + ", bidprice=" + symbolprice[0] + ", askprice=" + symbolprice[1] + ", balance=" + accountblance + ", freemargin=" + accountfreemargin + " ",
+		"UPDATE `" + _tablename + "` ",
+		"SET timecurrent=" + localtimes + ", bidprice=" + symbolprice[0] + ", askprice=" + symbolprice[1] + ", balance=" + accountblance + ", freemargin=" + accountfreemargin + ", spread=" + symbolspread + " ",
 		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
 	);
 	mysqlQuery(dbConnectId, query);
 }
 
 //--
-string readOtherBrokerPrice()
+void readBrokersPrice(string _tablename, int _brokernum)
 {
-	string data[][3];
-	string query = StringConcatenate(
-		"SELECT bidprice, askprice, timecurrent FROM `" + pricetable + "` ",
-		"WHERE account=" + RemoteAccount + " AND broker=\'" +  RemoteBroker + "\'"
-	);
+	//-- get price data
+	string data[][9];
+	string query = "SELECT broker, account, timecurrent, bidprice, askprice, spread FROM `" + _tablename + "`";
 
 	int result = mysqlFetchArray(dbConnectId, query, data);
 	if(result == 0)
@@ -211,23 +224,60 @@ string readOtherBrokerPrice()
 		outputLog("some error occured", "MySQL ERROR");
 	else
 	{
-		int rows = ArrayRange(data, 0);
-		int cols = ArrayRange(data, 1);
-
-		for(int i = 0; i < rows; i++)
-		{
-			for(int j = 0; j < cols; j++ ) {
-				pInfo[i][j] = data[i][j];
-			}
-		}
+		//-- update new price data to chart
+		updateDubugInfo(_brokernum, data);
 	}
-
-
 }
 
-//--
-void checkTradeChance()
+//-- get Price Diff [0]status [1]diff [2]action
+void getPriceDiff(int _brokernum, string &_data[][])
 {
+	//--  highest lowest, invalid, diff, action
+	int timecurrent;
+	int highest, lowest;
+	double highestp = 0;
+	double lowestp = 0;
+	double bidp = 0;
+
+
+	for(int i = 0; i < _brokernum; i++)
+	{
+		timecurrent = StrToInteger(_data[i][2]);
+		bidp = StrToDouble(_data[i][3]);
+
+		_data[i][6] = "";
+
+
+		if((TimeLocal() - timecurrent) < 3)
+		{
+			if(highest == 0)
+			{
+				highest = i;
+				highestp = bidp;
+				lowest = i;
+				lowestp = bidp;
+			}
+			else
+			{
+				if(bidp > highestp)
+				{
+					highest = i;
+					highestp = bidp;
+				}
+				else if(bidp < lowestp)
+				{
+					lowest = i;
+					lowestp = bidp;
+				}
+			}
+		}
+		else
+			_data[i][6] = "invalid";
+	}
+
+	//--
+	_data[lowest][6] = "lowest";
+	_data[highest][6] = "highest";
 
 }
 
@@ -243,7 +293,7 @@ void checkTradeChance()
 //-- check account marin level safe or not
 bool checkMarginSafe(int _cmd, double _lots)
 {
-	double freemargin = AccountFreeMarginCheck(Symbol(), _cmd, lots);
+	double freemargin = AccountFreeMarginCheck(Symbol(), _cmd, _lots);
 
 	//-- if free margin less than 0 then return false
 	if(freemargin<=0)
@@ -257,29 +307,7 @@ bool checkMarginSafe(int _cmd, double _lots)
 		return (false);
 }
 
-//-- use moneymanagment strategy get lots
-double calcuLots(int _digit = 2)
-{
-	if(moneymanagment==false)
-		return(BaseLots);
 
-	double lots, rate, kd;
-
-	kd = iCustom(NULL, 0, "Stochastic", kperiod, dperiod, kdslowing, 0, 0);
-
-	if(kd>75)
-		rate = 0.01;
-	else
-		rate = 0.005;
-
-	if(AccountFreeMargin()>0)
-	{
-		lots = (AccountFreeMargin() * rate) / stoploss;
-		lots = StrToDouble(DoubleToStr(lots, _digit));
-	}
-
-	return(lots);
-}
 
 
 
@@ -327,18 +355,18 @@ int getBorkerNum(string _tablename)
  */
 
 //-- output log
-void outputLog(string logtext, string type="Information")
+void outputLog(string _logtext, string _type="Information")
 {
-	string text = ">>>" + type + ":" + logtext;
+	string text = ">>>" + _type + ":" + _logtext;
 	Print (text);
 }
 
 //-- send alert
-void sendAlert(string text = "null")
+void sendAlert(string _text = "null")
 {
-	outputLog(text);
+	outputLog(_text);
 	PlaySound("alert.wav");
-	Alert(text);
+	Alert(_text);
 }
 
 //-- get all market information
@@ -389,6 +417,107 @@ void getInfo(string &MInfo[])
 	MInfo[20] = Symbol();
 	// get mInfo[21]
 	MInfo[21] = MarketInfo(MInfo[20], MODE_DIGITS);
+}
+
+void initDebugInfo(int _brokernum)
+{
+	int y = 0;
+
+	//-- background
+	ObjectCreate("background_1", OBJ_LABEL, 0, 0, 0);
+	ObjectSetText("background_1", "g", 300, "Webdings", DarkGreen);
+	ObjectSet("background_1", OBJPROP_BACK, false);
+	ObjectSet("background_1", OBJPROP_XDISTANCE, 20);
+	ObjectSet("background_1", OBJPROP_YDISTANCE, 13);
+
+	ObjectCreate("background_2", OBJ_LABEL, 0, 0, 0);
+	ObjectSetText("background_2", "g", 300, "Webdings", DarkGreen);
+	ObjectSet("background_2", OBJPROP_BACK, false);
+	ObjectSet("background_2", OBJPROP_XDISTANCE, 420);
+	ObjectSet("background_2", OBJPROP_YDISTANCE, 13);
+
+	//-- broker price table header
+	y += 15;
+	createTextObj("table_header_col_1", 25,	y, "Broker");
+	createTextObj("table_header_col_2", 120,y, "Account");
+	createTextObj("table_header_col_3", 190,y, "Time");
+	createTextObj("table_header_col_4", 350,y, "Bid");
+	createTextObj("table_header_col_5", 420,y, "Ask");
+	createTextObj("table_header_col_6", 490,y, "Spread");
+	createTextObj("table_header_col_7", 570,y, "Status"); //-- highest or lowest
+	createTextObj("table_header_col_8", 670,y, "Diff");
+	createTextObj("table_header_col_9", 770,y, "Action");
+
+	//-- broker price table body
+	if(_brokernum>0)
+	{
+		for(int i = 0; i < _brokernum; i++)
+		{
+			y += 15;
+			createTextObj("table_body_row_" + i + "_col_1", 25,	y, "", White);
+			createTextObj("table_body_row_" + i + "_col_2", 120,y, "", White);
+			createTextObj("table_body_row_" + i + "_col_3", 190,y);
+			createTextObj("table_body_row_" + i + "_col_4", 350,y);
+			createTextObj("table_body_row_" + i + "_col_5", 420,y);
+			createTextObj("table_body_row_" + i + "_col_6", 490,y);
+			createTextObj("table_body_row_" + i + "_col_7", 570,y);
+			createTextObj("table_body_row_" + i + "_col_8", 670,y);
+			createTextObj("table_body_row_" + i + "_col_9", 770,y);
+		}
+	}
+}
+
+//--  update new debug info to chart
+void updateDubugInfo(int _brokernum, string &_data[][])
+{
+	int digit = StrToInteger(mInfo[21]);
+
+	getPriceDiff(_brokernum, _data);
+
+	if(_brokernum>0)
+	{
+		for(int i = 0; i < _brokernum; i++)	//broker, account, timecurrent, bidprice, askprice, spread
+		{
+			if(_data[i][0] == mInfo[1])
+			{
+				setTextObj("table_body_row_" + i + "_col_1", StringSubstr(_data[i][0], 0, 10), DeepSkyBlue);	// broker
+				setTextObj("table_body_row_" + i + "_col_2", _data[i][1], DeepSkyBlue);	//account
+			}
+			else	
+			{
+				setTextObj("table_body_row_" + i + "_col_1", StringSubstr(_data[i][0], 0, 10));	// broker
+				setTextObj("table_body_row_" + i + "_col_2", _data[i][1]);	//account
+			}
+			setTextObj("table_body_row_" + i + "_col_3", TimeToStr(StrToInteger(_data[i][2]), TIME_DATE|TIME_SECONDS));	//time
+			setTextObj("table_body_row_" + i + "_col_4", _data[i][3]);	//bid
+			setTextObj("table_body_row_" + i + "_col_5", _data[i][4]);	//ask
+			setTextObj("table_body_row_" + i + "_col_6", _data[i][5]);	//spread
+			setTextObj("table_body_row_" + i + "_col_7", _data[i][6]);	//status
+			setTextObj("table_body_row_" + i + "_col_8", _data[i][7]);	//diff
+			setTextObj("table_body_row_" + i + "_col_9", _data[i][8]);	//action
+		}
+	}
+}
+
+//-- create text object
+void createTextObj(string objName, int xDistance, int yDistance, string objText="", color fontcolor=GreenYellow, string font="Courier New", int fontsize=9)
+{
+	if(ObjectFind(objName)<0)
+	{
+		ObjectCreate(objName, OBJ_LABEL, 0, 0, 0);
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
+		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
+	}
+}
+
+//-- set text object new value
+void setTextObj(string objName, string objText="", color fontcolor=White, string font="Courier New", int fontsize=9)
+{
+	if(ObjectFind(objName)>-1)
+	{
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+	}
 }
 
 
@@ -848,6 +977,28 @@ void deleteOrderStatus()
 
 
 
+//-- use moneymanagment strategy get lots
+double calcuLots(int _digit = 2)
+{
+	if(moneymanagment==false)
+		return(BaseLots);
 
+	double lots, rate, kd;
+
+	kd = iCustom(NULL, 0, "Stochastic", kperiod, dperiod, kdslowing, 0, 0);
+
+	if(kd>75)
+		rate = 0.01;
+	else
+		rate = 0.005;
+
+	if(AccountFreeMargin()>0)
+	{
+		lots = (AccountFreeMargin() * rate) / stoploss;
+		lots = StrToDouble(DoubleToStr(lots, _digit));
+	}
+
+	return(lots);
+}
 
 */
