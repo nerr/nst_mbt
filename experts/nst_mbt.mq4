@@ -39,6 +39,7 @@
  * v0.3.8  [dev] 2012-09-18 add getLots() func, set max lots (10)
  * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
  * v0.5.0  [dev] 2012-11-07 a new version is begin, it will delete slave script, auto load account info from db never need setup manual.
+ * v0.5.1  [dev] 2012-11-15 finished price information display part;
  *
  */
 
@@ -63,13 +64,13 @@ extern bool 	EnableTrade		= true;
 extern string 	BaseSetting		= "---------Base Setting---------";
 extern double 	BaseLots		= 0.2;
 extern int 		BaseTarget		= 10;
-extern int 	  	MagicNumber		= 9999;
 extern double 	TholdPips		= 5.0;
-extern int 		BeginLevel		= 5;
+//extern int 		BeginLevel		= 5;
 extern double 	StopLossPips	= 500.0;
 extern double 	TakeProfitPips	= 50.0;
-extern double 	MinPip			= 0.01;
-extern bool 	moneymanagment	= true;
+//extern double 	MinPip			= 0.01;
+extern int 	  	MagicNumber		= 9999;
+extern bool 	moneymanagment	= false;
 extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -128,8 +129,28 @@ int init()
 		return (1);
 	}
 
-	//-- add a new record if table have no this broker
+	//-- create price table if it not exists
 	string query = StringConcatenate(
+		"CREATE TABLE IF NOT EXISTS `" + pricetable + "` (",
+		"`broker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' ,",
+		"`account`  int(10) NOT NULL ,",
+		"`timecurrent`  int(10) NULL DEFAULT NULL ,",
+		"`bidprice`  float NULL DEFAULT NULL ,",
+		"`askprice`  float NULL DEFAULT NULL ,",
+		"`spread`  float(11,0) NULL DEFAULT NULL ,",
+		"`balance`  float NULL DEFAULT NULL ,",
+		"`freemargin`  float NULL DEFAULT NULL ,",
+		"PRIMARY KEY (`account`),",
+		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
+		")",
+		"ENGINE=InnoDB",
+		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci",
+		"ROW_FORMAT=COMPACT"
+	);
+	mysqlQuery(dbConnectId, query);
+
+	//-- add a new record if table have no this broker
+	query = StringConcatenate(
 		"INSERT IGNORE INTO `" + pricetable + "` (`broker`, `account`) ",
 		"VALUES (\'" + mInfo[1] + "\', " + mInfo[15] + ")"
 	);
@@ -169,8 +190,6 @@ int start()
 	updateThisBrokerPrice(pricetable);
 	readBrokersPrice(pricetable, brokerNum);
 
-
-	
 	return(0);
 }
 
@@ -230,7 +249,7 @@ void readBrokersPrice(string _tablename, int _brokernum)
 }
 
 //-- get Price Diff [0]status [1]diff [2]action
-void getPriceDiff(int _brokernum, string &_data[][])
+void checkPrice(int _brokernum, string &_data[][])
 {
 	//--  highest lowest, invalid, diff, action
 	int timecurrent;
@@ -246,7 +265,6 @@ void getPriceDiff(int _brokernum, string &_data[][])
 		bidp = StrToDouble(_data[i][3]);
 
 		_data[i][6] = "";
-
 
 		if((TimeLocal() - timecurrent) < 3)
 		{
@@ -472,7 +490,7 @@ void updateDubugInfo(int _brokernum, string &_data[][])
 {
 	int digit = StrToInteger(mInfo[21]);
 
-	getPriceDiff(_brokernum, _data);
+	checkPrice(_brokernum, _data);
 
 	if(_brokernum>0)
 	{
