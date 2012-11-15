@@ -40,7 +40,7 @@
  * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
  * v0.5.0  [dev] 2012-11-07 a new version is begin, it will delete slave script, auto load account info from db never need setup manual.
  * v0.5.1  [dev] 2012-11-15 finished price information display part;
- *
+ * v0.5.2  [dev] 2012-11-15 finished diff indicator calculat or hightest and lowest price;
  */
 
 
@@ -257,6 +257,10 @@ void checkPrice(int _brokernum, string &_data[][])
 	double highestp = 0;
 	double lowestp = 0;
 	double bidp = 0;
+	double avgsum = 0.0;
+	int avgnum = 0;
+	double avgprice = 0.0;
+	double diffh, diffl;
 
 
 	for(int i = 0; i < _brokernum; i++)
@@ -279,11 +283,17 @@ void checkPrice(int _brokernum, string &_data[][])
 			{
 				if(bidp > highestp)
 				{
+					avgsum = highestp;
+					avgnum++;
+
 					highest = i;
 					highestp = bidp;
 				}
 				else if(bidp < lowestp)
 				{
+					avgsum = highestp;
+					avgnum++;
+
 					lowest = i;
 					lowestp = bidp;
 				}
@@ -293,13 +303,24 @@ void checkPrice(int _brokernum, string &_data[][])
 			_data[i][6] = "invalid";
 	}
 
-	//--
+	//-- set price status
 	_data[lowest][6] = "lowest";
 	_data[highest][6] = "highest";
 
+	//-- avg price
+	if(avgnum > 0)
+		avgprice = avgsum/avgnum;
+
+	//-- get & set diff indicator value
+	if(avgprice > 0)
+	{
+		diffl = avgprice - StrToDouble(_data[lowest][3]);
+		diffh = StrToDouble(_data[highest][3]) - avgprice;
+
+		_data[lowest][7] = DoubleToStr(diffl, mInfo[21]);
+		_data[highest][7] = DoubleToStr(diffh, mInfo[21]);
+	}
 }
-
-
 
 
 
