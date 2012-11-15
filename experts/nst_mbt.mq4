@@ -42,6 +42,7 @@
  * v0.5.1  [dev] 2012-11-15 finished price information display part;
  * v0.5.2  [dev] 2012-11-15 finished diff indicator calculate or hightest and lowest price;
  * v0.5.3  [dev] 2012-11-15 fix calculate diff indicator bug;
+ * v0.5.4  [dev] 2012-11-15 it's a runable version and there are some bugs too;
  *
  *
  *
@@ -67,15 +68,12 @@
 
 extern bool 	EnableTrade		= true;
 extern string 	BaseSetting		= "---------Base Setting---------";
-extern double 	BaseLots		= 0.2;
-extern int 		BaseTarget		= 10;
-extern double 	TholdPips		= 5.0;
-//extern int 		BeginLevel		= 5;
-extern double 	StopLossPips	= 500.0;
-extern double 	TakeProfitPips	= 50.0;
-//extern double 	MinPip			= 0.01;
+extern double 	BaseLots		= 0.1;
+extern double 	TholdPips		= 8.0;
+extern double 	StopLossPips	= 50.0;
+extern double 	TakeProfitPips	= 3.0;
 extern int 	  	MagicNumber		= 9999;
-extern bool 	moneymanagment	= false;
+extern bool 	MoneyManagment	= false;
 extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -93,6 +91,7 @@ extern int 		port			= 3306;
 
 string 		mInfo[22];
 int 		brokerNum;
+double 		tp, sl;
 
 
 
@@ -161,11 +160,22 @@ int init()
 	);
 	mysqlQuery(dbConnectId, query);
 
-	//-- calu thold pips
-	//TholdPips = TholdPips * MinPip;
+	//-- adjust pips
+	StopLossPips = StopLossPips * Point;
+	TakeProfitPips  = TakeProfitPips * Point;
+	TholdPips = TholdPips * Point;
 
+	if(Digits % 2 == 1)
+	{
+		StopLossPips *= 10;
+		TakeProfitPips  *= 10;
+		TholdPips *= 10;
+	}
+
+	//--
 	brokerNum = getBorkerNum(pricetable);
 
+	//--
 	initDebugInfo(brokerNum);
 
 	return(0);
@@ -265,6 +275,7 @@ void checkPrice(int _brokernum, string &_data[][])
 
 		_data[i][6] = "";
 		_data[i][7] = "";
+		_data[i][8] = "";
 
 		if((TimeLocal() - timecurrent) < 3)
 		{
@@ -326,6 +337,36 @@ void checkPrice(int _brokernum, string &_data[][])
 		_data[lowest][7] = "";
 		_data[highest][7] = "";
 	}
+
+
+
+	//-- scan trade chance
+	double price;
+	int ticket;
+	if(diffl >= TholdPips && _data[lowest][0] == mInfo[1] && _data[lowest][1] == mInfo[15])
+	{
+		if((diffl / diffh) > 10 || diffh == 0)
+		{
+			price = StrToDouble(_data[lowest][4]);
+			//-- open buy order
+			ticket = openOrder(0, "nst_mbt", MagicNumber, StopLossPips, TakeProfitPips, price);
+
+			_data[lowest][8] = "BUY";
+		}
+	}
+	else if(diffh >= TholdPips && _data[lowest][0] == mInfo[1] && _data[lowest][1] == mInfo[15])
+	{
+		if((diffh / diffl) > 10 || diffh == 0)
+		{
+			//-- open sell order
+			price = StrToDouble(_data[lowest][3]);
+			ticket = openOrder(1, "nst_mbt", MagicNumber, StopLossPips, TakeProfitPips, price);
+			_data[highest][8] = "SELL";
+		}
+	}
+
+	if(ticket != 0)
+		sendAlert("Order Ticket - " + ticket);
 }
 
 
@@ -334,6 +375,39 @@ void checkPrice(int _brokernum, string &_data[][])
  * Order Funcs
  *
  */
+
+//-- open order func **not complete**
+int openOrder(int _direction, string _comment, int _magicnumber, double _stoploss, double _takeprofit, double _price)
+{
+	color _arrow;
+	double _lots, _sl, _tp;
+
+	_lots = calcuLots();
+
+	//-- check margin level
+	if(checkMarginSafe(_direction, _lots)==false)
+	{
+		outputLog("Out of safe margin level!");
+		return (0);
+	}
+
+	if(_direction == 0)
+	{
+		_arrow = Blue;
+		_tp = _price + _takeprofit;
+		_sl = _price - _stoploss;
+	}
+	else
+	{
+		_arrow = Red;
+		_tp = _price - _takeprofit;
+		_sl = _price + _stoploss;
+	}
+
+	int ordert = OrderSend(Symbol(), _direction, _lots, _price, 0, _sl, _tp, _comment, _magicnumber, 0, _arrow);
+
+	return(ordert);
+}
 
 //-- check account marin level safe or not
 bool checkMarginSafe(int _cmd, double _lots)
@@ -350,6 +424,13 @@ bool checkMarginSafe(int _cmd, double _lots)
 		return (true);
 	else
 		return (false);
+}
+
+//--
+double calcuLots()
+{
+	if(MoneyManagment == false)
+		return(BaseLots);
 }
 
 
