@@ -142,14 +142,14 @@ int init()
 		"`timecurrent`  int(10) NULL DEFAULT NULL ,",
 		"`bidprice`  float NULL DEFAULT NULL ,",
 		"`askprice`  float NULL DEFAULT NULL ,",
-		"`spread`  float(11,0) NULL DEFAULT NULL ,",
+		"`spread`  float NULL DEFAULT NULL ,",
 		"`balance`  float NULL DEFAULT NULL ,",
 		"`freemargin`  float NULL DEFAULT NULL ,",
 		"PRIMARY KEY (`account`),",
 		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
 		")",
-		"ENGINE=InnoDB",
-		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci",
+		"ENGINE=InnoDB ",
+		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci ",
 		"ROW_FORMAT=COMPACT"
 	);
 	mysqlQuery(dbConnectId, query);
