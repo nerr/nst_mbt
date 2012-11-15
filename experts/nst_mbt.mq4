@@ -40,7 +40,12 @@
  * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
  * v0.5.0  [dev] 2012-11-07 a new version is begin, it will delete slave script, auto load account info from db never need setup manual.
  * v0.5.1  [dev] 2012-11-15 finished price information display part;
- * v0.5.2  [dev] 2012-11-15 finished diff indicator calculat or hightest and lowest price;
+ * v0.5.2  [dev] 2012-11-15 finished diff indicator calculate or hightest and lowest price;
+ * v0.5.3  [dev] 2012-11-15 fix calculate diff indicator bug;
+ *
+ *
+ *
+ *
  */
 
 
@@ -176,17 +181,6 @@ int deinit()
 //-- start
 int start()
 {
-	//-- calu price differece between two brokers
-	//checkPriceDifference();
-	//-- open order
-	//if(EnableTrade == true)
-		//scanOpportunity();
-
-	//-- check current order profit, waitting for close order
-	//checkCurrentOrder();
-	//-- check bad order
-	//checkBadOrder();
-
 	updateThisBrokerPrice(pricetable);
 	readBrokersPrice(pricetable, brokerNum);
 
@@ -208,11 +202,11 @@ void updateThisBrokerPrice(string _tablename)
 	datetime localtimes = TimeLocal();
 	double accountblance = AccountBalance();
 	double accountfreemargin = AccountFreeMargin();
-	double symbolspread = MarketInfo(mInfo[20], MODE_SPREAD);
+	double symbolspread;
 
 	//-- get real spread
 	if(Digits % 2 == 1)
-		symbolspread /= 10;
+		symbolspread = MarketInfo(mInfo[20], MODE_SPREAD) / 10;
 
 	RefreshRates();
 	if(Bid>0)
@@ -226,6 +220,7 @@ void updateThisBrokerPrice(string _tablename)
 		"SET timecurrent=" + localtimes + ", bidprice=" + symbolprice[0] + ", askprice=" + symbolprice[1] + ", balance=" + accountblance + ", freemargin=" + accountfreemargin + ", spread=" + symbolspread + " ",
 		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
 	);
+
 	mysqlQuery(dbConnectId, query);
 }
 
@@ -269,10 +264,11 @@ void checkPrice(int _brokernum, string &_data[][])
 		bidp = StrToDouble(_data[i][3]);
 
 		_data[i][6] = "";
+		_data[i][7] = "";
 
 		if((TimeLocal() - timecurrent) < 3)
 		{
-			if(highest == 0)
+			if(i == 0)
 			{
 				highest = i;
 				highestp = bidp;
@@ -283,17 +279,11 @@ void checkPrice(int _brokernum, string &_data[][])
 			{
 				if(bidp > highestp)
 				{
-					avgsum = highestp;
-					avgnum++;
-
 					highest = i;
 					highestp = bidp;
 				}
 				else if(bidp < lowestp)
 				{
-					avgsum = highestp;
-					avgnum++;
-
 					lowest = i;
 					lowestp = bidp;
 				}
@@ -303,12 +293,23 @@ void checkPrice(int _brokernum, string &_data[][])
 			_data[i][6] = "invalid";
 	}
 
+	for(int j = 0; j < _brokernum; j++)
+	{
+		if(j!=lowest && j!=highest && _data[j][6]!="invalid")
+		{
+			avgnum++;
+			avgsum += StrToDouble(_data[j][3]);
+		}
+	}
+
 	//-- set price status
 	_data[lowest][6] = "lowest";
 	_data[highest][6] = "highest";
 
 	//-- avg price
-	if(avgnum > 0)
+	if(avgnum == 1)
+		avgprice = avgsum;
+	else if(avgnum > 1)
 		avgprice = avgsum/avgnum;
 
 	//-- get & set diff indicator value
@@ -317,8 +318,13 @@ void checkPrice(int _brokernum, string &_data[][])
 		diffl = avgprice - StrToDouble(_data[lowest][3]);
 		diffh = StrToDouble(_data[highest][3]) - avgprice;
 
-		_data[lowest][7] = DoubleToStr(diffl, mInfo[21]);
-		_data[highest][7] = DoubleToStr(diffh, mInfo[21]);
+		_data[lowest][7] = DoubleToStr(diffl, Digits);
+		_data[highest][7] = DoubleToStr(diffh, Digits);
+	}
+	else if(avgprice <= 0 || avgnum == 0)
+	{
+		_data[lowest][7] = "";
+		_data[highest][7] = "";
 	}
 }
 
@@ -509,7 +515,7 @@ void initDebugInfo(int _brokernum)
 //--  update new debug info to chart
 void updateDubugInfo(int _brokernum, string &_data[][])
 {
-	int digit = StrToInteger(mInfo[21]);
+	int digit = Digits;
 
 	checkPrice(_brokernum, _data);
 
