@@ -420,7 +420,7 @@ bool checkMarginSafe(int _cmd, double _lots)
 
 	//-- margin level = equity / (equity - free margin)
 	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
-	if(marginlevel>30) //-- safe margin level set to 3000%
+	if(marginlevel>2) //-- safe margin level set to 3000%
 		return (true);
 	else
 		return (false);
