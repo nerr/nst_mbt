@@ -38,30 +38,42 @@
  * v0.3.7  [dev] 2012-09-17 fix close order color error
  * v0.3.8  [dev] 2012-09-18 add getLots() func, set max lots (10)
  * v0.3.9  [dev] 2012-09-24 improve order management, add order status check, when Metatrader has no order but database has order update the order status in database.
+ * v0.5.0  [dev] 2012-11-07 a new version is begin, it will delete slave script, auto load account info from db never need setup manual.
+ * v0.5.1  [dev] 2012-11-15 finished price information display part;
+ * v0.5.2  [dev] 2012-11-15 finished diff indicator calculate or hightest and lowest price;
+ * v0.5.3  [dev] 2012-11-15 fix calculate diff indicator bug;
+ * v0.5.4  [dev] 2012-11-15 it's a runable version and there are some bugs too;
+ *
+ *
  *
  *
  */
 
-//-- property info
+
+
+/* 
+ * property infomation
+ *
+ */
+
 #property copyright "Copyright ? 2012 Nerrsoft.com"
 #property link 		"http://nerrsoft.com"
 
-//-- extern var
-extern bool 	EnableTrade		= TRUE;
+
+
+/* 
+ * define extern
+ *
+ */
+
+extern bool 	EnableTrade		= true;
 extern string 	BaseSetting		= "---------Base Setting---------";
-extern double 	BaseLots		= 0.2;
-extern int 		BaseTarget		= 10;
+extern double 	BaseLots		= 0.1;
+extern double 	TholdPips		= 8.0;
+extern double 	StopLossPips	= 50.0;
+extern double 	TakeProfitPips	= 3.0;
 extern int 	  	MagicNumber		= 9999;
-extern double 	TholdPips		= 5.0;
-extern int 		BeginLevel		= 5;
-extern string 	SLAndTPSetting	= "---------SL and TP Setting---------";
-extern double 	StopLossPips	= 500.0;
-extern double 	TakeProfitPips	= 50.0;
-extern double 	MinPip			= 0.01;
-extern string 	RemoteSetting	= "---------Slave Setting---------";
-extern string 	RemoteBroker	= "FXPRO Financial Services Ltd";
-extern string 	RemoteAccount	= "4149641";
-extern bool 	EnableSlaveTrade= FALSE;
+extern bool 	MoneyManagment	= false;
 extern string 	DBSetting 		= "---------MySQL Setting---------";
 extern string 	host			= "127.0.0.1";
 extern string 	user			= "root";
@@ -70,33 +82,41 @@ extern string 	dbName			= "metatrader";
 extern string 	pricetable		= "";
 extern int 		port			= 3306;
 
-//-- The information of this EA
-string eaInfo[3];
 
-//-- global var
+
+/* 
+ * Global variable
+ *
+ */
+
 string 		mInfo[22];
-double 		localPrice[2], remotePrice[2];
-double 		priceDifferenceBuy[3], priceDifferenceSell[3];
-datetime 	localTimeCurrent, remoteTimeCurrent;
-bool 		HaveOrder = false;
-int 		currentLevel = 0;
+int 		brokerNum;
+double 		tp, sl;
 
-//-- include mysql wrapper
+
+
+
+/* 
+ * include mysql wrapper
+ *
+ */
+
 #include <mysql_v2.0.5.mqh>
-int     socket   = 0;
-int     client   = 0;
-int     dbConnectId = 0;
-bool    goodConnect = false;
-//-- include common func
-#include <nerr_smart_trader_common.mqh>
+int		socket 		= 0;
+int		client 		= 0;
+int		dbConnectId = 0;
+bool	goodConnect = false;
+
+
+
+/* 
+ * System Funcs
+ *
+ */
 
 //-- init
 int init()
 {
-	eaInfo[0]	= "NST_MBT(Master)";
-	eaInfo[1]	= "0.3.9[dev]";
-	eaInfo[2]	= "Copyright ? 2012 Nerrsoft.com";
-
 	//-- get market information
 	getInfo(mInfo);
 
@@ -113,10 +133,50 @@ int init()
 		return (1);
 	}
 
-	//-- calu thold pips
-	TholdPips = TholdPips * MinPip;
+	//-- create price table if it not exists
+	string query = StringConcatenate(
+		"CREATE TABLE IF NOT EXISTS `" + pricetable + "` (",
+		"`broker`  varchar(48) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' ,",
+		"`account`  int(10) NOT NULL ,",
+		"`timecurrent`  int(10) NULL DEFAULT NULL ,",
+		"`bidprice`  float NULL DEFAULT NULL ,",
+		"`askprice`  float NULL DEFAULT NULL ,",
+		"`spread`  float NULL DEFAULT NULL ,",
+		"`balance`  float NULL DEFAULT NULL ,",
+		"`freemargin`  float NULL DEFAULT NULL ,",
+		"PRIMARY KEY (`account`),",
+		"INDEX `idx_accountbroker` (`broker`, `account`) USING BTREE ",
+		")",
+		"ENGINE=InnoDB ",
+		"DEFAULT CHARACTER SET=utf8 COLLATE=utf8_general_ci ",
+		"ROW_FORMAT=COMPACT"
+	);
+	mysqlQuery(dbConnectId, query);
 
-	initDebugInfo();
+	//-- add a new record if table have no this broker
+	query = StringConcatenate(
+		"INSERT IGNORE INTO `" + pricetable + "` (`broker`, `account`) ",
+		"VALUES (\'" + mInfo[1] + "\', " + mInfo[15] + ")"
+	);
+	mysqlQuery(dbConnectId, query);
+
+	//-- adjust pips
+	StopLossPips = StopLossPips * Point;
+	TakeProfitPips  = TakeProfitPips * Point;
+	TholdPips = TholdPips * Point;
+
+	if(Digits % 2 == 1)
+	{
+		StopLossPips *= 10;
+		TakeProfitPips  *= 10;
+		TholdPips *= 10;
+	}
+
+	//--
+	brokerNum = getBorkerNum(pricetable);
+
+	//--
+	initDebugInfo(brokerNum);
 
 	return(0);
 }
@@ -131,22 +191,474 @@ int deinit()
 //-- start
 int start()
 {
-	//-- calu price differece between two brokers
-	checkPriceDifference();
-	//-- open order
-	if(EnableTrade==TRUE)
-		scanOpportunity();
+	updateThisBrokerPrice(pricetable);
+	readBrokersPrice(pricetable, brokerNum);
 
-	//-- check current order profit, waitting for close order
-	checkCurrentOrder();
-	//-- check bad order
-	checkBadOrder();
-	
-	//-- output into to chart
-	updateDubugInfo();
-	
 	return(0);
 }
+
+
+
+/* 
+ * Price Funcs
+ *
+ */
+
+//-- 
+void updateThisBrokerPrice(string _tablename)
+{
+	//-- get information
+	double symbolprice[2];
+	datetime localtimes = TimeLocal();
+	double accountblance = AccountBalance();
+	double accountfreemargin = AccountFreeMargin();
+	double symbolspread;
+
+	//-- get real spread
+	if(Digits % 2 == 1)
+		symbolspread = MarketInfo(mInfo[20], MODE_SPREAD) / 10;
+
+	RefreshRates();
+	if(Bid>0)
+		symbolprice[0] = Bid;
+	if(Ask>0)
+		symbolprice[1] = Ask;
+
+	//-- update to db
+	string query = StringConcatenate(
+		"UPDATE `" + _tablename + "` ",
+		"SET timecurrent=" + localtimes + ", bidprice=" + symbolprice[0] + ", askprice=" + symbolprice[1] + ", balance=" + accountblance + ", freemargin=" + accountfreemargin + ", spread=" + symbolspread + " ",
+		"WHERE account=" + mInfo[15] + " and broker=\'" +  mInfo[1] + "\'"
+	);
+
+	mysqlQuery(dbConnectId, query);
+}
+
+//--
+void readBrokersPrice(string _tablename, int _brokernum)
+{
+	//-- get price data
+	string data[][9];
+	string query = "SELECT broker, account, timecurrent, bidprice, askprice, spread FROM `" + _tablename + "`";
+
+	int result = mysqlFetchArray(dbConnectId, query, data);
+	if(result == 0)
+		outputLog("0 rows selected", "MySQL ERROR");
+	else if(result == -1)
+		outputLog("some error occured", "MySQL ERROR");
+	else
+	{
+		//-- update new price data to chart
+		updateDubugInfo(_brokernum, data);
+	}
+}
+
+//-- get Price Diff [0]status [1]diff [2]action
+void checkPrice(int _brokernum, string &_data[][])
+{
+	//--  highest lowest, invalid, diff, action
+	int timecurrent;
+	int highest, lowest;
+	double highestp = 0;
+	double lowestp = 0;
+	double bidp = 0;
+	double avgsum = 0.0;
+	int avgnum = 0;
+	double avgprice = 0.0;
+	double diffh, diffl;
+
+
+	for(int i = 0; i < _brokernum; i++)
+	{
+		timecurrent = StrToInteger(_data[i][2]);
+		bidp = StrToDouble(_data[i][3]);
+
+		_data[i][6] = "";
+		_data[i][7] = "";
+		_data[i][8] = "";
+
+		if((TimeLocal() - timecurrent) < 3)
+		{
+			if(i == 0)
+			{
+				highest = i;
+				highestp = bidp;
+				lowest = i;
+				lowestp = bidp;
+			}
+			else
+			{
+				if(bidp > highestp)
+				{
+					highest = i;
+					highestp = bidp;
+				}
+				else if(bidp < lowestp)
+				{
+					lowest = i;
+					lowestp = bidp;
+				}
+			}
+		}
+		else
+			_data[i][6] = "invalid";
+	}
+
+	for(int j = 0; j < _brokernum; j++)
+	{
+		if(j!=lowest && j!=highest && _data[j][6]!="invalid")
+		{
+			avgnum++;
+			avgsum += StrToDouble(_data[j][3]);
+		}
+	}
+
+	//-- set price status
+	_data[lowest][6] = "lowest";
+	_data[highest][6] = "highest";
+
+	//-- avg price
+	if(avgnum == 1)
+		avgprice = avgsum;
+	else if(avgnum > 1)
+		avgprice = avgsum/avgnum;
+
+	//-- get & set diff indicator value
+	if(avgprice > 0)
+	{
+		diffl = avgprice - StrToDouble(_data[lowest][3]);
+		diffh = StrToDouble(_data[highest][3]) - avgprice;
+
+		_data[lowest][7] = DoubleToStr(diffl, Digits);
+		_data[highest][7] = DoubleToStr(diffh, Digits);
+	}
+	else if(avgprice <= 0 || avgnum == 0)
+	{
+		_data[lowest][7] = "";
+		_data[highest][7] = "";
+	}
+
+
+
+	//-- scan trade chance
+	double price;
+	int ticket;
+	if(diffl >= TholdPips && _data[lowest][0] == mInfo[1] && _data[lowest][1] == mInfo[15])
+	{
+		if((diffl / diffh) > 10 || diffh == 0)
+		{
+			price = StrToDouble(_data[lowest][4]);
+			//-- open buy order
+			ticket = openOrder(0, "nst_mbt", MagicNumber, StopLossPips, TakeProfitPips, price);
+
+			_data[lowest][8] = "BUY";
+		}
+	}
+	else if(diffh >= TholdPips && _data[lowest][0] == mInfo[1] && _data[lowest][1] == mInfo[15])
+	{
+		if((diffh / diffl) > 10 || diffh == 0)
+		{
+			//-- open sell order
+			price = StrToDouble(_data[lowest][3]);
+			ticket = openOrder(1, "nst_mbt", MagicNumber, StopLossPips, TakeProfitPips, price);
+			_data[highest][8] = "SELL";
+		}
+	}
+
+	if(ticket != 0)
+		sendAlert("Order Ticket - " + ticket);
+}
+
+
+
+/* 
+ * Order Funcs
+ *
+ */
+
+//-- open order func **not complete**
+int openOrder(int _direction, string _comment, int _magicnumber, double _stoploss, double _takeprofit, double _price)
+{
+	color _arrow;
+	double _lots, _sl, _tp;
+
+	_lots = calcuLots();
+
+	//-- check margin level
+	if(checkMarginSafe(_direction, _lots)==false)
+	{
+		outputLog("Out of safe margin level!");
+		return (0);
+	}
+
+	if(_direction == 0)
+	{
+		_arrow = Blue;
+		_tp = _price + _takeprofit;
+		_sl = _price - _stoploss;
+	}
+	else
+	{
+		_arrow = Red;
+		_tp = _price - _takeprofit;
+		_sl = _price + _stoploss;
+	}
+
+	int ordert = OrderSend(Symbol(), _direction, _lots, _price, 0, _sl, _tp, _comment, _magicnumber, 0, _arrow);
+
+	return(ordert);
+}
+
+//-- check account marin level safe or not
+bool checkMarginSafe(int _cmd, double _lots)
+{
+	double freemargin = AccountFreeMarginCheck(Symbol(), _cmd, _lots);
+
+	//-- if free margin less than 0 then return false
+	if(freemargin<=0)
+		return (false);
+
+	//-- margin level = equity / (equity - free margin)
+	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
+	if(marginlevel>2) //-- safe margin level set to 3000%
+		return (true);
+	else
+		return (false);
+}
+
+//--
+double calcuLots()
+{
+	if(MoneyManagment == false)
+		return(BaseLots);
+}
+
+
+
+
+
+/* 
+ * MySQL Funcs
+ *
+ */
+
+//-- connect to database
+int connectdb()
+{
+	//-- close connection if exists
+	if(dbConnectId>0)
+		mysqlDeinit(dbConnectId);
+
+	//-- connect mysql
+	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
+
+	return (result);
+}
+
+//-- get brokers number
+int getBorkerNum(string _tablename)
+{
+	int rows = -1;
+	string data[][1];
+	string query = "SELECT broker FROM `" + _tablename + "`";
+	int result = mysqlFetchArray(dbConnectId, query, data);
+
+	if(result == 0)
+		outputLog("0 rows selected", "MySQL ERROR");
+	else if(result == -1)
+		outputLog("some error occured", "MySQL ERROR");
+	else
+		rows = ArrayRange(data, 0);
+
+	return(rows);
+}
+
+
+
+/* 
+ * Debug Funcs
+ *
+ */
+
+//-- output log
+void outputLog(string _logtext, string _type="Information")
+{
+	string text = ">>>" + _type + ":" + _logtext;
+	Print (text);
+}
+
+//-- send alert
+void sendAlert(string _text = "null")
+{
+	outputLog(_text);
+	PlaySound("alert.wav");
+	Alert(_text);
+}
+
+//-- get all market information
+void getInfo(string &MInfo[])
+{
+	// get account type
+	if(IsDemo()) MInfo[0] = "Demo";
+	else MInfo[0] = "Real";
+	// get broker
+	MInfo[1] = TerminalCompany();
+	// get MT4 name
+	MInfo[2] = TerminalName();
+	// get server Time
+	MInfo[3] = TimeToStr(TimeCurrent(), TIME_DATE|TIME_SECONDS);
+	// get account balance
+	MInfo[4] = AccountBalance();
+	// get account credit
+	MInfo[5] = AccountCredit();
+	// get account company
+	MInfo[6] = AccountCompany();
+	// get account currency
+	MInfo[7] = AccountCurrency();
+	// get account equity
+	MInfo[8] = AccountEquity();
+	// get account free margin
+	MInfo[9] = AccountFreeMargin();
+	// get account free margin check
+	// MInfo[10] = AccountFreeMarginCheck(Symbol(),);
+	// get account free margin mode
+	MInfo[11] = AccountFreeMarginMode();
+	// get account leverage
+	MInfo[12] = AccountLeverage();
+	// get account margin
+	MInfo[13] = AccountMargin();
+	// get account nameh
+	MInfo[14] = AccountName();
+	// get account number
+	MInfo[15] = AccountNumber();
+	// get account profit
+	MInfo[16] = AccountProfit();
+	// get account server
+	MInfo[17] = AccountServer();
+	// get account stop out level
+	MInfo[18] = AccountStopoutLevel();
+	// get account stop out mode
+	MInfo[19] = AccountStopoutMode();
+	// get current symbol
+	MInfo[20] = Symbol();
+	// get mInfo[21]
+	MInfo[21] = MarketInfo(MInfo[20], MODE_DIGITS);
+}
+
+void initDebugInfo(int _brokernum)
+{
+	int y = 0;
+
+	//-- background
+	ObjectCreate("background_1", OBJ_LABEL, 0, 0, 0);
+	ObjectSetText("background_1", "g", 300, "Webdings", DarkGreen);
+	ObjectSet("background_1", OBJPROP_BACK, false);
+	ObjectSet("background_1", OBJPROP_XDISTANCE, 20);
+	ObjectSet("background_1", OBJPROP_YDISTANCE, 13);
+
+	ObjectCreate("background_2", OBJ_LABEL, 0, 0, 0);
+	ObjectSetText("background_2", "g", 300, "Webdings", DarkGreen);
+	ObjectSet("background_2", OBJPROP_BACK, false);
+	ObjectSet("background_2", OBJPROP_XDISTANCE, 420);
+	ObjectSet("background_2", OBJPROP_YDISTANCE, 13);
+
+	//-- broker price table header
+	y += 15;
+	createTextObj("table_header_col_1", 25,	y, "Broker");
+	createTextObj("table_header_col_2", 120,y, "Account");
+	createTextObj("table_header_col_3", 190,y, "Time");
+	createTextObj("table_header_col_4", 350,y, "Bid");
+	createTextObj("table_header_col_5", 420,y, "Ask");
+	createTextObj("table_header_col_6", 490,y, "Spread");
+	createTextObj("table_header_col_7", 570,y, "Status"); //-- highest or lowest
+	createTextObj("table_header_col_8", 670,y, "Diff");
+	createTextObj("table_header_col_9", 770,y, "Action");
+
+	//-- broker price table body
+	if(_brokernum>0)
+	{
+		for(int i = 0; i < _brokernum; i++)
+		{
+			y += 15;
+			createTextObj("table_body_row_" + i + "_col_1", 25,	y, "", White);
+			createTextObj("table_body_row_" + i + "_col_2", 120,y, "", White);
+			createTextObj("table_body_row_" + i + "_col_3", 190,y);
+			createTextObj("table_body_row_" + i + "_col_4", 350,y);
+			createTextObj("table_body_row_" + i + "_col_5", 420,y);
+			createTextObj("table_body_row_" + i + "_col_6", 490,y);
+			createTextObj("table_body_row_" + i + "_col_7", 570,y);
+			createTextObj("table_body_row_" + i + "_col_8", 670,y);
+			createTextObj("table_body_row_" + i + "_col_9", 770,y);
+		}
+	}
+}
+
+//--  update new debug info to chart
+void updateDubugInfo(int _brokernum, string &_data[][])
+{
+	int digit = Digits;
+
+	checkPrice(_brokernum, _data);
+
+	if(_brokernum>0)
+	{
+		for(int i = 0; i < _brokernum; i++)	//broker, account, timecurrent, bidprice, askprice, spread
+		{
+			if(_data[i][0] == mInfo[1])
+			{
+				setTextObj("table_body_row_" + i + "_col_1", StringSubstr(_data[i][0], 0, 10), DeepSkyBlue);	// broker
+				setTextObj("table_body_row_" + i + "_col_2", _data[i][1], DeepSkyBlue);	//account
+			}
+			else	
+			{
+				setTextObj("table_body_row_" + i + "_col_1", StringSubstr(_data[i][0], 0, 10));	// broker
+				setTextObj("table_body_row_" + i + "_col_2", _data[i][1]);	//account
+			}
+			setTextObj("table_body_row_" + i + "_col_3", TimeToStr(StrToInteger(_data[i][2]), TIME_DATE|TIME_SECONDS));	//time
+			setTextObj("table_body_row_" + i + "_col_4", _data[i][3]);	//bid
+			setTextObj("table_body_row_" + i + "_col_5", _data[i][4]);	//ask
+			setTextObj("table_body_row_" + i + "_col_6", _data[i][5]);	//spread
+			setTextObj("table_body_row_" + i + "_col_7", _data[i][6]);	//status
+			setTextObj("table_body_row_" + i + "_col_8", _data[i][7]);	//diff
+			setTextObj("table_body_row_" + i + "_col_9", _data[i][8]);	//action
+		}
+	}
+}
+
+//-- create text object
+void createTextObj(string objName, int xDistance, int yDistance, string objText="", color fontcolor=GreenYellow, string font="Courier New", int fontsize=9)
+{
+	if(ObjectFind(objName)<0)
+	{
+		ObjectCreate(objName, OBJ_LABEL, 0, 0, 0);
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+		ObjectSet(objName, OBJPROP_XDISTANCE,	xDistance);
+		ObjectSet(objName, OBJPROP_YDISTANCE, 	yDistance);
+	}
+}
+
+//-- set text object new value
+void setTextObj(string objName, string objText="", color fontcolor=White, string font="Courier New", int fontsize=9)
+{
+	if(ObjectFind(objName)>-1)
+	{
+		ObjectSetText(objName, objText, fontsize, font, fontcolor);
+	}
+}
+
+
+
+
+/*
+//-- global var
+string 		mInfo[22];
+double 		localPrice[2], remotePrice[2];
+double 		priceDifferenceBuy[3], priceDifferenceSell[3];
+datetime 	localTimeCurrent, remoteTimeCurrent;
+bool 		HaveOrder = false;
+int 		currentLevel = 0;
+
+
 
 void checkBadOrder()
 {
@@ -560,17 +1072,6 @@ void setTextObj(string objName, string objText="", string font="Courier New", in
 	}
 }
 
-int connectdb()
-{
-	//-- close connection if exists
-	if(dbConnectId>0)
-		mysqlDeinit(dbConnectId);
-
-	//-- connect mysql
-	bool result = mysqlInit(dbConnectId, host, user, pass, dbName, port, socket, client);
-
-	return (result);
-}
 
 //-- order obj display manage
 void displayOrderStatus(int line, int level, int ticket, double profit, double target)
@@ -599,28 +1100,31 @@ void deleteOrderStatus()
 }
 
 
-bool checkMarginSafe(int cmd, double lots)
+
+
+
+//-- use moneymanagment strategy get lots
+double calcuLots(int _digit = 2)
 {
-	double freemargin = AccountFreeMarginCheck(Symbol(), cmd, lots);
+	if(moneymanagment==false)
+		return(BaseLots);
 
-	//-- if free margin less than 0 then return false
-	if(freemargin<=0)
-		return (false);
+	double lots, rate, kd;
 
-	//-- margin level = equity / (equity - free margin)
-	double marginlevel = AccountEquity() / (AccountEquity() - freemargin);
-	if(marginlevel>30) //-- safe margin level set to 3000%
-		return (true);
+	kd = iCustom(NULL, 0, "Stochastic", kperiod, dperiod, kdslowing, 0, 0);
+
+	if(kd>75)
+		rate = 0.01;
 	else
-		return (false);
-}
+		rate = 0.005;
 
-double getLots(int mutiple)
-{
-	double lots = BaseLots * mutiple;
-
-	if(lots>10)
-		lots = 10;
+	if(AccountFreeMargin()>0)
+	{
+		lots = (AccountFreeMargin() * rate) / stoploss;
+		lots = StrToDouble(DoubleToStr(lots, _digit));
+	}
 
 	return(lots);
 }
+
+*/
