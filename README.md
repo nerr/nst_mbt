@@ -32,7 +32,7 @@ You need two brokers MetaTrader4 account first.
 - Setup slave client info, broker's name and account number. You can copy & paste it from your MySQL.
 - Press OK, done.
 
-### Thanks
+## Thanks
 Thank [Navicat](http://www.navicat.com) for the [Open Source Project License](http://www.navicat.com/store/open-source) support.
 
 ![Logo](http://i7.minus.com/iQszScxtdHFAC.jpg)
