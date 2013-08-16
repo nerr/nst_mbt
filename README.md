@@ -35,7 +35,7 @@ You need two brokers MetaTrader4 account first.
 ## Thanks
 Thank [Navicat](http://www.navicat.com) for the [Open Source Project License](http://www.navicat.com/store/open-source) support.
 
-![Logo](http://i7.minus.com/iQszScxtdHFAC.jpg)
+[![Logo](http://i7.minus.com/iQszScxtdHFAC.jpg)](http://www.navicat.com)
 
 
 # License
