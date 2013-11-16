@@ -25,7 +25,7 @@ extern int      MagicNumber     = 5257;
 extern bool     MoneyManagment  = false;
 
 extern string   DBSETTING       = "---PostgreSQL Database Settings---";
-extern string   dbhost          = "localhost";
+extern string   dbhost          = "192.168.11.6";
 extern string   dbport          = "5432";
 extern string   dbuser          = "postgres";
 extern string   dbpass          = "911911";
