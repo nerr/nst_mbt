@@ -37,6 +37,9 @@ Thank [Navicat](http://www.navicat.com) for the [Open Source Project License](ht
 
 [![Logo](http://i7.minus.com/iQszScxtdHFAC.jpg)](http://www.navicat.com)
 
+Thank [RubyMine](http://www.jetbrains.com/ruby/) for the [Open Source Project License](http://www.jetbrains.com/ruby/buy/buy.jsp#openSource) support.
+
+[![Logo](http://www.jetbrains.com/img/logos/rubymine_logo142x29.gif)](http://www.jetbrains.com/ruby)
 
 # License
 
