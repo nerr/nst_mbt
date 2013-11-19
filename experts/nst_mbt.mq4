@@ -13,10 +13,9 @@
  *
  */
 
-extern bool     EnableTrade     = false;
-
+extern bool     EnableTrade     = false;   //-- control master only
 extern string   BASESETTING     = "---Base Setting---";
-extern string   Mode            = "slave"; //-- master or slave
+extern string   RunningMode     = "slave"; //-- option: [master] or [slave] or [test]
 extern double   BaseLots        = 0.1;
 extern double   TholdPips       = 8.0;
 extern double   StopLossPips    = 50.0;
@@ -34,24 +33,20 @@ extern string   dbname          = "nstmbt";
 
 
 /* 
- * Global variable
- *
- */
-
-string      marketInfo[22];
-string      symbols[];
-int         brokerNum;
-double      tp, sl;
-
-int         accountid;
-
-
-/* 
  * include library
  *
  */
 #include <nst_lib_all.mqh>
 #include <postgremql4.mqh>
+
+
+
+/* 
+ * Global variable
+ *
+ */
+int     AccountNum;
+string  CurrSymbol;
 
 
 
@@ -71,9 +66,6 @@ int init()
         return (-1);
     }
 
-    //-- get all symbols
-    libSymbolsList(symbols, true);
-
     //-- get account id
     accountid = getAccountId(AccountNumber(), TerminalCompany());
 
@@ -91,92 +83,40 @@ int deinit()
 //-- start
 int start()
 {
-    if(Mode == "master")
+    if(Mode == "master") //-- todo -> trans Mode to upper
         master();
     else if(Mode == "slave")
         slave();
+    else if(Mode == "slave")
+        test();
+    else
+        libDebugOutputLog("Please check the mode setting (master or slave).");
 }
 
-//-- master
+
+/* 
+ * Mode Funcs
+ *
+ */
+
+//-- master mode
 void master()
 {
-
+    //-- todo ->
 }
 
-//-- slave
+//-- slave mode
 void slave()
 {
-    /*string query = "";
-    string res = "";
-    double balance, freemargin, askprice, bidprice;
-
-    //-- check new command
+    //-- todo -> check command
 
     //-- update price to db
-    balance = AccountBalance();
-    freemargin = AccountFreeMargin();
-    string currtime = libDatetimeTm2str(TimeLocal());
-    query = "INSERT INTO price (accountid,symbol,datetime,price_bid,price_ask,balance,freemargin) VALUES ";
-    int symbolsnum = ArrayRange(symbols, 0);
-    for(int i = 0; i < symbolsnum; i++)
-    {
-        askprice = MarketInfo(symbols[i], MODE_ASK);
-        bidprice = MarketInfo(symbols[i], MODE_BID);
-        //-- 
-        query = StringConcatenate(
-            query,
-            "(" + accountid + ", " + symbols[i] + ", '" + currtime + "', " + bidprice + ", " + askprice + ", " + balance + ", " + freemargin + "),"
-        );
-    }
-    query = StringSubstr(query, 0, StringLen(query) - 1);
-    res = pmql_exec(query);*/
+    updatePrice();
+
 }
 
-//-- get account id from db by account number and broker name
-int getAccountId(int _an, string _borker)
+//-- test mode
+void test()
 {
-    int id = 0;
-    string query = "SELECT id FROM account WHERE accountnumber=\'" + _an + "\' AND broker=\'" + _borker + "\'";
-    string res = pmql_exec(query);
-
-    if(res == "")
-    {
-        query = "INSERT INTO account (accountnumber, broker) VALUES (\'" + _an + "', '" + _borker + "\')";
-        res = pmql_exec(query);
-        id = getAccountId(AccountNumber(), TerminalCompany());
-    }
-    else
-        id = StrToInteger(StringSubstr(res, 3, -1));
-
-    return(id);
-}
-
-void initPriceTable()
-{
-    string query = "";
-    string res = "";
-    double balance, freemargin, askprice, bidprice;
-
-    //-- delete old symbol record from db
-    query = "delete from price where accountid=" + accountid;
-    pmql_exec(query);
-
-    //-- insert symbol record to db
-    balance = AccountBalance();
-    freemargin = AccountFreeMargin();
-    string currtime = libDatetimeTm2str(TimeLocal());
-    query = "INSERT INTO price (accountid,symbol,datetime,price_bid,price_ask,balance,freemargin) VALUES ";
-    int symbolsnum = ArrayRange(symbols, 0);
-    for(int i = 0; i < symbolsnum; i++)
-    {
-        askprice = MarketInfo(symbols[i], MODE_ASK);
-        bidprice = MarketInfo(symbols[i], MODE_BID);
-        //-- 
-        query = StringConcatenate(
-            query,
-            "(" + accountid + ", " + symbols[i] + ", '" + currtime + "', " + bidprice + ", " + askprice + ", " + balance + ", " + freemargin + "),"
-        );
-    }
-    query = StringSubstr(query, 0, StringLen(query) - 1);
-    res = pmql_exec(query);
+    //-- todo ->
 }
