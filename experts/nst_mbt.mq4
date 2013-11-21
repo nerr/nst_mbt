@@ -80,7 +80,7 @@ int init()
     PriceId    = getPriceId(AccountId, SymbolId);
 
     //-- init price record
-    initPriceTable();
+    initPriceTable(); //-- todo -> ...
 }
 
 //-- deinit
@@ -119,7 +119,7 @@ void master()
 void slave()
 {
     //-- todo -> check command
-
+    
     //-- update price to db
     updatePrice(PriceId);
 }
