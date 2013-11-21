@@ -226,5 +226,38 @@ int getSymbolId(string _sn)
 //-- pid = symbol record id in price table
 void updatePrice(int _pid)
 {
+    RefreshRates();
 
+    string query = "";
+    query = "UPDATE nst_mbt_price SET";
+    query = query + " bidprice=" + Bid + ",";
+    query = query + " askprice=" + Ask + ",";
+    query = query + " localtime='" + libDatetimeTm2str(TimeLocal()) + "',";
+    query = query + " servertime='" + libDatetimeTm2str(TimeCurrent()) + "'";
+    query = query + " WHERE id=" + _pid;
+
+    string res = pmql_exec(squery);
+
+    if(StringLen(res)>0)
+        pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
 }
+
+
+
+/* 
+ * Public Funcs
+ * public funcs in this EA
+ */
+
+void pubLog2Db(string _logtext, string _type="Information")
+{
+    libDebugOutputLog(_logtext, _type);
+    string query = "INSERT INTO nst_mbt_tradinglog () VALUES ()";
+    string res = pmql_exec(squery);
+    if(StringLen(res)>0)
+        libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
+}
+
+
+
+
