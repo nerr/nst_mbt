@@ -62,7 +62,7 @@ int init()
     string res = pmql_connect(dbhost, dbport, dbuser, dbpass, dbname);
     if((res != "ok") && (res != "already connected"))
     {
-        libDebugOutputLog("DB not connected!", "PGSQL-ERR");
+        pubLog2Db("DB not connected!", "PGSQL-ERR");
         return (-1);
     }
 
@@ -97,10 +97,10 @@ int start()
         master();
     else if(Mode == "slave")
         slave();
-    else if(Mode == "slave")
+    else if(Mode == "test")
         test();
     else
-        libDebugOutputLog("Please check the mode setting (master or slave).");
+        pubLog2Db("Please check the mode setting (master or slave or test).");
 }
 
 
@@ -218,8 +218,8 @@ int getSymbolId(string _sn)
 
 
 /* 
- * Init Funcs
- * use to get init data and init settings
+ * Slave Funcs
+ * the func who use for slave mode only
  */
 
 //-- update price to database
