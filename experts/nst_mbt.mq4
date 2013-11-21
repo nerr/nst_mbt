@@ -45,8 +45,8 @@ extern string   dbname          = "nstmbt";
  * Global variable
  *
  */
-int     AccountNum;
-string  CurrSymbol;
+int     AccountId, AccountNum, AccountLev, SymbolId, PriceId;
+string  SymbolName, SymExt, BrokerName;
 
 
 
@@ -66,8 +66,18 @@ int init()
         return (-1);
     }
 
-    //-- get account id
-    accountid = getAccountId(AccountNumber(), TerminalCompany());
+    //-- get account id by account number 
+    AccountNum = AccountNumber();
+    AccountLev = AccountLeverage();
+    BrokerName = AccountCompany();
+    SymbolName = StringSubstr(Symbol(), 0, 6);
+    if(StringLen(Symbol()) > 6)
+        SymExt = StringSubstr(Symbol(),6);
+    //-- get account id from db
+    AccountId  = getAccountId(AccountNum, BrokerName, AccountLev); //-- todo -> get AccountId
+    //-- get symbolid and priceid
+    SymbolId   = getSymbolId(SymbolName);
+    PriceId    = getPriceId(AccountId, SymbolId);
 
     //-- init price record
     initPriceTable();
@@ -111,12 +121,110 @@ void slave()
     //-- todo -> check command
 
     //-- update price to db
-    updatePrice();
-
+    updatePrice(PriceId);
 }
 
 //-- test mode
 void test()
 {
     //-- todo ->
+}
+
+
+
+/* 
+ * Init Funcs
+ * use to get init data and init settings
+ */
+
+//--
+int getAccountId(int _an, string _bn, int _lev)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_sys_account (accountnumber, broker, leverage) VALUES ('" + _an + "', '" + _bn + "', " + _lev + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+//-- 
+int getPriceId(int _aid, int _sid)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_price WHERE accountid='" + _aid + "' AND symbolid='" + _sid + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES ('" + _aid + "', '" + _sid + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+//--
+int getSymbolId(string _sn)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_symbol WHERE symbolname='" + _sn +"'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_symbol (symbolname) VALUES ('" + _sn + "')";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+
+
+/* 
+ * Init Funcs
+ * use to get init data and init settings
+ */
+
+//-- update price to database
+//-- pid = symbol record id in price table
+void updatePrice(int _pid)
+{
+
 }
