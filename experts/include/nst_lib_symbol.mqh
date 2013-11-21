@@ -93,3 +93,15 @@ string libSymbolType(string SymbolName)
    
    return(SymbolGroup);
 }
+
+
+double libSymbolCalcMargin(string _sy, double _lot, int _ot, int _level, int _multiple = 100000)
+{
+   double margin = MarketInfo(_sy, 10 - _ot) * _multiple / _level * _lot;
+   return(margin);
+}
+
+double libSymbolMarginRequire(string _sy, double _lot)
+{
+   return(MarketInfo(_sy, MODE_MARGINREQUIRED) * _lot);
+}
