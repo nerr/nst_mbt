@@ -13,14 +13,14 @@
  *
  */
 
-extern bool     EnableTrade     = false;   //-- control master only
+extern bool     EnableTrade     = false;    //-- control master only
 extern string   BASESETTING     = "---Base Setting---";
-extern string   RunningMode     = "slave"; //-- option: [master] or [slave] or [test]
+extern string   RunningMode     = "slave";  //-- option: [master] or [slave] or [test]
 extern double   BaseLots        = 0.1;
 extern double   TholdPips       = 8.0;
 extern double   StopLossPips    = 50.0;
 extern double   TakeProfitPips  = 3.0;
-extern int      MagicNumber     = 5257;
+extern int      MagicNumber     = 5257;     //-- it is avliable only master mode
 extern bool     MoneyManagment  = false;
 
 extern string   DBSETTING       = "---PostgreSQL Database Settings---";
