@@ -236,7 +236,7 @@ void updatePrice(int _pid)
     query = query + " servertime='" + libDatetimeTm2str(TimeCurrent()) + "'";
     query = query + " WHERE id=" + _pid;
 
-    string res = pmql_exec(squery);
+    string res = pmql_exec(query);
 
     if(StringLen(res)>0)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
@@ -252,8 +252,8 @@ void updatePrice(int _pid)
 void pubLog2Db(string _logtext, string _type="Information")
 {
     libDebugOutputLog(_logtext, _type);
-    string query = "INSERT INTO nst_mbt_tradinglog () VALUES ()";
-    string res = pmql_exec(squery);
+    string query = "INSERT INTO nst_mbt_tradinglog (logdatetime, logtype, logcontent) VALUES ('" + libDatetimeTm2str(TimeLocal()) + "', '" + _type + "', '" + _logtext + "')";
+    string res = pmql_exec(query);
     if(StringLen(res)>0)
         libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
 }
