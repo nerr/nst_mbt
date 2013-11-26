@@ -119,6 +119,9 @@ void master()
 void slave()
 {
     //-- todo -> check command
+    string query, res;
+    query = "select * from nst_mbt_command where commandstatus in (0, 3, 8) and slaveid=" + AccountId + " order by commandstatus";
+    res = pmql_exec(query);
     
     //-- update price to db
     updatePrice(PriceId);
