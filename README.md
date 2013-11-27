@@ -14,11 +14,6 @@ You need two more brokers MetaTrader4 account first.
 
 ## Config
 
-### Setup slave client
-
-
-
-### Setup master client
 
 
 
