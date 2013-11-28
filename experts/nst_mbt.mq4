@@ -28,7 +28,7 @@ extern string   dbhost          = "192.168.11.6";
 extern string   dbport          = "5432";
 extern string   dbuser          = "postgres";
 extern string   dbpass          = "911911";
-extern string   dbname          = "nstmbt";
+extern string   dbname          = "nst";
 
 
 
@@ -80,7 +80,7 @@ int init()
     PriceId    = getPriceId(AccountId, SymbolId);
 
     //-- init price record
-    initPriceTable(); //-- todo -> ...
+    //initPriceTable(); //-- todo -> ...
 }
 
 //-- deinit
@@ -93,11 +93,11 @@ int deinit()
 //-- start
 int start()
 {
-    if(Mode == "master") //-- todo -> trans Mode to upper
+    if(RunningMode == "master") //-- todo -> trans Mode to upper
         master();
-    else if(Mode == "slave")
+    else if(RunningMode == "slave")
         slave();
-    else if(Mode == "test")
+    else if(RunningMode == "test")
         test();
     else
         pubLog2Db("Please check the mode setting (master or slave or test).");
@@ -119,18 +119,19 @@ void master()
 void slave()
 {
     //-- todo -> check command
-    string query, res;
+    /*string query, res;
     query = "select * from nst_mbt_command where commandstatus in (0, 3, 8) and slaveid=" + AccountId + " order by commandstatus";
-    res = pmql_exec(query);
+    res = pmql_exec(query);*/
+    slaveHandleCommand();
     
     //-- update price to db
-    updatePrice(PriceId);
+    slaveUpdatePrice(PriceId);
 }
 
 //-- test mode
 void test()
 {
-    //-- todo ->
+    //-- todo -> test mode
 }
 
 
@@ -148,7 +149,7 @@ int getAccountId(int _an, string _bn, int _lev)
     string res = pmql_exec(squery);
     if(res == "")
     {
-        string iquery = "INSERT INTO nst_sys_account (accountnumber, broker, leverage) VALUES ('" + _an + "', '" + _bn + "', " + _lev + ")";
+        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ")";
         res = pmql_exec(iquery);
         if(res == "")
         {
@@ -174,7 +175,7 @@ int getPriceId(int _aid, int _sid)
     string res = pmql_exec(squery);
     if(res == "")
     {
-        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES ('" + _aid + "', '" + _sid + ")";
+        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES (" + _aid + ", " + _sid + ")";
         res = pmql_exec(iquery);
         if(res == "")
         {
@@ -226,8 +227,8 @@ int getSymbolId(string _sn)
  */
 
 //-- update price to database
-//-- pid = symbol record id in price table
-void updatePrice(int _pid)
+//-- pid (price id) = symbol record id in price table
+void slaveUpdatePrice(int _pid)
 {
     RefreshRates();
 
@@ -235,14 +236,20 @@ void updatePrice(int _pid)
     query = "UPDATE nst_mbt_price SET";
     query = query + " bidprice=" + Bid + ",";
     query = query + " askprice=" + Ask + ",";
-    query = query + " localtime='" + libDatetimeTm2str(TimeLocal()) + "',";
-    query = query + " servertime='" + libDatetimeTm2str(TimeCurrent()) + "'";
+    query = query + " loctime='" + libDatetimeTm2str(TimeLocal()) + "',";
+    query = query + " sertime='" + libDatetimeTm2str(TimeCurrent()) + "'";
     query = query + " WHERE id=" + _pid;
 
     string res = pmql_exec(query);
 
     if(StringLen(res)>0)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
+}
+
+//-- load command from db and process command from master client
+void slaveHandleCommand()
+{
+    
 }
 
 
