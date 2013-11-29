@@ -93,7 +93,7 @@ int deinit()
 //-- start
 int start()
 {
-    if(RunningMode == "master") //-- todo -> trans Mode to upper
+    if(RunningMode == "master")
         master();
     else if(RunningMode == "slave")
         slave();
@@ -112,16 +112,23 @@ int start()
 //-- master mode
 void master()
 {
+    //-- check command
+    masterHandleCommand();
+
+    //-- get local price bid & ask
+    masterDiffPrice(SymbolName);
+
+    //-- load avilable slave price and find chance
+
+
     //-- todo ->
+
 }
 
 //-- slave mode
 void slave()
 {
-    //-- todo -> check command
-    /*string query, res;
-    query = "select * from nst_mbt_command where commandstatus in (0, 3, 8) and slaveid=" + AccountId + " order by commandstatus";
-    res = pmql_exec(query);*/
+    //-- check command
     slaveHandleCommand();
     
     //-- update price to db
@@ -220,6 +227,26 @@ int getSymbolId(string _sn)
 }
 
 
+/* 
+ * Slave Funcs
+ * the func who use for slave mode only
+ */
+
+void masterHandleCommand()
+{
+
+}
+
+void masterDiffPrice()
+{
+
+}
+
+int masterOrderTotal()
+{
+
+}
+
 
 /* 
  * Slave Funcs
@@ -249,7 +276,11 @@ void slaveUpdatePrice(int _pid)
 //-- load command from db and process command from master client
 void slaveHandleCommand()
 {
-    
+    string query, res;
+    query = "select * from nst_mbt_command where commandstatus in (0, 3, 8) and slaveid=" + AccountId + " order by commandstatus";
+    res = pmql_exec(query);
+
+    //-- todo ->
 }
 
 
@@ -268,6 +299,19 @@ void pubLog2Db(string _logtext, string _type="Information")
         libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
 }
 
+bool pubOrderOpen()
+{
 
+}
+
+bool pubOrderClose()
+{
+
+}
+
+bool pubSetOrderSTTP()
+{
+    
+}
 
 
