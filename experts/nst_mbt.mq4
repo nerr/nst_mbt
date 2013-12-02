@@ -314,9 +314,40 @@ bool pubSetOrderSTTP()
     
 }
 
-int pubGetOrderArray()
+//--
+int pubGetOrderArray(int _mn = 0) //-- magic number = 0 mean all order
 {
+    if()
+    {
 
+    }
+}
+
+int pubGetCommandArray(int, _symid, string _mode, int _aid, int _mn, string &_arr[])
+{
+    //-- make where
+    string _where = "";
+    if(_mode == "slave")
+        _where = " WHERE slaveaid=" + _aid + " AND orderstatus in (0,3,6,8)";
+    else if(_mode == "master")
+        _where = " WHERE masteraid=" + _aid + " AND orderstatus in (0,1,2,4,5,6)";
+
+    _where = _where + " AND symbolid=" + _symid + " AND ordermagicnum=" + _mn;
+
+    //-- query command
+    int _rows = 0;
+    string query, res;
+    query = "select id,masteraid,slaveaid,commandstatus,commandtype,symbolid,masteropenprice,slaveopenprice from nst_mbt_command" + _where;
+    res = pmql_exec(query);
+
+    //-- get array result and result row number
+    if(StringLen(res)>0)
+    {
+        libPgsqlFetchArr(res, _arr);
+        _rows = ArraySize(_arr);
+    }
+
+    return(_rows);
 }
 
 
