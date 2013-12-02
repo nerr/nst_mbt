@@ -273,6 +273,16 @@ void slaveUpdatePrice(int _pid)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
 }
 
+//-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
+void slaveUpdateOrderProfit(int _cid, double _profit)
+{
+    string query = "";
+    query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _profit + ",logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE commandid=" + _cid;
+    string res = pmql_exec(query);
+
+    if(StringLen(res)>0)
+        pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
+}
 
 
 
