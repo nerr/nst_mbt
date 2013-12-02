@@ -323,6 +323,7 @@ int pubGetOrderArray(int _mn = 0) //-- magic number = 0 mean all order
     }
 }
 
+//-- public func - get command from db return result rows and string array (need define array index)
 int pubGetCommandArray(int, _symid, string _mode, int _aid, int _mn, string &_arr[])
 {
     //-- make where
