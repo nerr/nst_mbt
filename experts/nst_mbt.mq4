@@ -273,15 +273,6 @@ void slaveUpdatePrice(int _pid)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
 }
 
-//-- load command from db and process command from master client
-void slaveHandleCommand()
-{
-    string query, res;
-    query = "select * from nst_mbt_command where commandstatus in (0, 3, 8) and slaveid=" + AccountId + " order by commandstatus";
-    res = pmql_exec(query);
-
-    //-- todo ->
-}
 
 
 
