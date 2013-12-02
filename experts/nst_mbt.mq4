@@ -301,7 +301,7 @@ void pubLog2Db(string _logtext, string _type="Information")
 
 bool pubOrderOpen()
 {
-
+    //-- todo -> slave order use commandid as comment
 }
 
 bool pubOrderClose()
@@ -312,6 +312,11 @@ bool pubOrderClose()
 bool pubSetOrderSTTP()
 {
     
+}
+
+int pubGetOrderArray()
+{
+
 }
 
 
