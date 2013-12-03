@@ -274,15 +274,27 @@ void slaveUpdatePrice(int _pid)
 }
 
 //-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
-void slaveUpdateOrderProfit(int _cid, double _profit)
+int slaveUpdateOrderProfit(string _arr[][])
 {
-    string query = "";
-    query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _profit + ",logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE commandid=" + _cid;
-    string res = pmql_exec(query);
+    int size = ArrayRange(_data, 1);
 
-    if(StringLen(res)>0)
+    if(size <= 0)
+        return(0);
+
+    string query = "";
+    string res   = "";
+    for(int i = 0; i < size; i++)
+    {
+        query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _arr[i][9] + ",slaveswap=" + _arr[i][9] + ", slavecommission=" + _arr[i][4] + " logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE commandid=" + _cid;
+        string res = pmql_exec(query);
+
+        if(StringLen(res)>0)
         pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
+    }    
 }
+
+//--
+
 
 
 
@@ -316,16 +328,41 @@ bool pubSetOrderSTTP()
 }
 
 //--
-int pubGetOrderArray(int _mn = 0) //-- magic number = 0 mean all order
+int pubGetOrderArray(string _sym, string _arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
-    if()
-    {
+    int symordernum = 0;
+    //ArrayResize(_arr, ordernum);
 
+    int ordernum = OrdersTotal();
+    for(int i = 0; i < ordernum; i++)
+    {
+        if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            if(OrderMagicNumber() == _mn && OrderSymbol() == _sym)
+            {
+                _arr[symordernum, 0] = OrderTicket();
+                _arr[symordernum, 1] = OrderType();
+                _arr[symordernum, 2] = OrderOpenPrice();
+                _arr[symordernum, 3] = OrderComment();
+                _arr[symordernum, 4] = OrderCommission();
+                _arr[symordernum, 5] = OrderLots();
+                _arr[symordernum, 6] = OrderSwap();
+                _arr[symordernum, 7] = OrderStopLoss();
+                _arr[symordernum, 8] = OrderTakeProfit();
+                _arr[symordernum, 9] = OrderProfit();
+
+                symordernum++;
+            }
+        }
     }
+
+    ArrayResize(_arr, symordernum);
+
+    return(symordernum);
 }
 
 //-- public func - get command from db return result rows and string array (need define array index)
-int pubGetCommandArray(int, _symid, string _mode, int _aid, int _mn, string &_arr[])
+int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr[][]]
 {
     //-- make where
     string _where = "";
