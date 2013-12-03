@@ -128,11 +128,19 @@ void master()
 //-- slave mode
 void slave()
 {
-    //-- check command
-    slaveHandleCommand();
-    
+    //-- get orders array
+    string OrderArr[500, 10];
+    pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
+
+    //-- get orders array
+    string CommandArr[500, 8];
+    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
+
     //-- update price to db
     slaveUpdatePrice(PriceId);
+
+    //-- update order profit + swap + commission to db
+    slaveUpdateOrderProfit(OrderArr);
 }
 
 //-- test mode
@@ -290,7 +298,9 @@ int slaveUpdateOrderProfit(string _arr[][])
 
         if(StringLen(res)>0)
         pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
-    }    
+    }
+
+    return(1);
 }
 
 //--
@@ -362,7 +372,7 @@ int pubGetOrderArray(string _sym, string _arr[][], int _mn = 0) //-- magic numbe
 }
 
 //-- public func - get command from db return result rows and string array (need define array index)
-int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr[][]]
+int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr[][])
 {
     //-- make where
     string _where = "";
