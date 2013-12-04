@@ -129,12 +129,18 @@ void master()
 void slave()
 {
     //-- get orders array
+    string CommandArr[500, 8];
+    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
+
+    //-- check commands
+    slaveCheckCommand(CommandArr);
+
+    //-- get orders array
     string OrderArr[500, 10];
     pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
 
-    //-- get orders array
-    string CommandArr[500, 8];
-    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
+    //-- check order
+    slaveCheckOrder();
 
     //-- update price to db
     slaveUpdatePrice(PriceId);
@@ -284,10 +290,9 @@ void slaveUpdatePrice(int _pid)
 //-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
 int slaveUpdateOrderProfit(string _arr[][])
 {
-    int size = ArrayRange(_data, 1);
+    int size = ArrayRange(_arr, 1);
 
-    if(size <= 0)
-        return(0);
+    if(size <= 0) return(0);
 
     string query = "";
     string res   = "";
@@ -297,13 +302,72 @@ int slaveUpdateOrderProfit(string _arr[][])
         string res = pmql_exec(query);
 
         if(StringLen(res)>0)
-        pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
+            pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
     }
 
     return(1);
 }
 
 //--
+int slaveCheckCommand(string _arr)
+{
+    int size = ArrayRange(_arr, 1);
+
+    if(size <= 0) return(0);
+
+    for(int i = 0; i < size; i++)
+    {
+        //-- open order command 
+        if(_arr[i][3] == "0")
+        {
+            int _ticket = 0;
+            _ticket = pubOrderOpen();
+            if(_ticket > 0)
+            {
+                pubSetCommandStatus(_arr[i][0], 2);
+                slaveInsertProfit(_arr[i][0]);
+            }
+            else
+            {
+                pubSetCommandStatus(_arr[i][0], 1);
+                pubLog2Db("Slave Open Order fail, command[" + _arr[i][0] + "]", "NST-MBT-LOG");
+            }
+        }
+        else if(_arr[i][3] == "3")
+        {
+            
+        }
+        else if(_arr[i][3] == "6")
+        {
+            
+        }
+        else if(_arr[i][3] == "8")
+        {
+            
+        }
+    }
+
+    return(1);
+}
+
+//--
+void slaveCheckOrder()
+{
+    int size = ArrayRange(_arr, 1);
+}
+
+bool slaveInsertProfit(string _cid)
+{
+    string _query = "INSERT INTO nst_mbt_slave_profit (commandid) VALUES (" + _cid + ")";
+    string _res   = pmql_exec(_query);
+    if(StringLen(_res)>0)
+    {
+        pubLog2Db("Insert slave profit data fail [" + _res + "] commandid[" + _cid + "]", "NST-MBT-LOG");
+        return(false);
+    }
+    else
+        return(true);
+}
 
 
 
@@ -322,7 +386,7 @@ void pubLog2Db(string _logtext, string _type="Information")
         libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
 }
 
-bool pubOrderOpen()
+int pubOrderOpen()
 {
     //-- todo -> slave order use commandid as comment
 }
@@ -397,6 +461,20 @@ int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr
     }
 
     return(_rows);
+}
+
+//-- update command status
+bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
+{
+    string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + " WHERE id=" + _cid;
+    string _res   = pmql_exec(_query);
+    if(StringLen(_res)>0)
+    {
+        pubLog2Db("Update command status fail [" + _res + "]", "NST-MBT-LOG");
+        return(false);
+    }
+    else
+        return(true);
 }
 
 
