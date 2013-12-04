@@ -322,9 +322,9 @@ int slaveCheckCommand(string _arr)
         {
             int _ticket = 0;
             _ticket = pubOrderOpen();
-            if(_ticket > 0)
+            if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
-                pubSetCommandStatus(_arr[i][0], 2);
+                slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice());
                 slaveInsertProfit(_arr[i][0]);
             }
             else
@@ -363,6 +363,20 @@ bool slaveInsertProfit(string _cid)
     if(StringLen(_res)>0)
     {
         pubLog2Db("Insert slave profit data fail [" + _res + "] commandid[" + _cid + "]", "NST-MBT-LOG");
+        return(false);
+    }
+    else
+        return(true);
+}
+
+//-- command id & order ticket & open price
+bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op)
+{
+    string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + ", slaveorderid=" + _ticket + ", slaveopenprice=" + _op + " WHERE id=" + _cid;
+    string _res   = pmql_exec(_query);
+    if(StringLen(_res)>0)
+    {
+        pubLog2Db("Update command status fail [" + _res + "]", "NST-MBT-LOG");
         return(false);
     }
     else
