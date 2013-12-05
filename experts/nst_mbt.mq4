@@ -373,10 +373,9 @@ int slaveCheckCommand(string _arr)
             _ticket = StrToInteger(_arr[i][10]);
             if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
-                //-- delete pending order
-                if(OrderTpye() > 1)
+                if(OrderTpye() > 1) //-- delete pending order
                     OrderDelete(_ticket);
-                else
+                else                //-- close order
                 {
                     _totalprofit = 0;
                     _totalprofit = slaveGetMasterOrderTotalProfit(_arr[i][0]) + OrderProfit() + OrderSwap() + OrderCommission();
@@ -487,7 +486,7 @@ int pubOrderOpen()
 bool pubOrderCloseByTicket(int _ticket)
 {
     bool _status = false;
-    if(OrderSelect(_ticket, SELECT_BY_TICKET))
+    if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
     {
       if (OrderType() == OP_BUY)  _status = OrderClose(_ticket, OrderLots(), MarketInfo(OrderSymbol(), MODE_BID), 3);
       if (OrderType() == OP_SELL) _status = OrderClose(_ticket, OrderLots(), MarketInfo(OrderSymbol(), MODE_ASK), 3);
@@ -498,9 +497,43 @@ bool pubOrderCloseByTicket(int _ticket)
     return(_status);
 }
 
-bool pubSetOrderSTTP()
+//--
+bool pubSetOrderSTTP(int _ticket, double _tp, double _sl)
 {
-    //--
+    bool _status = false; //-- init status
+    int _minpip = 1;
+
+    if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
+    {
+        //if(OrderStopLoss() > 0 || OrderTakeProfit() > 0) return(true);
+
+        _stoplevel = MarketInfo(OrderSymbol(), MODE_STOPLEVEL);
+        _pip = pubGetRealPip(OrderSymbol());
+        _tp *= _pip;
+        _sl *= _pip;
+
+        //-- adjust takeprofit and stoploss
+        if(_tp < _stoplevel) _tp = _stoplevel;
+        if(_sl < _stoplevel) _sl = _stoplevel;
+
+        _tp *= pubGetMinPoint(OrderSymbol());
+        _sl *= pubGetMinPoint(OrderSymbol());
+
+        if(OrderType() == OP_BUY)
+        {
+            _tp = OrderOpenPrice() + _tp;
+            _sl = OrderOpenPrice() - _slx;
+            _status = OrderModify(OrderTicket(), OrderOpenPrice(), Bid-Point*TrailingStop, OrderTakeProfit(), 0);
+        }
+        if(OrderType() == OP_SELL)
+        {
+            _tp = OrderOpenPrice() - _tp;
+            _sl = OrderOpenPrice() + _sl;
+            _status = OrderModify(OrderTicket(), OrderOpenPrice(), Bid-Point*TrailingStop, OrderTakeProfit(), 0);
+        }
+    }
+
+    return(_status);
 }
 
 //--
@@ -577,4 +610,26 @@ bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
     }
     else
         return(true);
+}
+
+//-- get real pip
+int pubGetRealPip(string _sym)
+{
+    int _point_compat = 1;
+    int _digit = MarketInfo(_sym, MODE_DIGITS);
+    if(_digit == 3 || _digit == 5) _point_compat = 10;
+
+    return(_point_compat);
+}
+
+//-- get real min pip
+int pubGetMinPoint(string _sym)
+{
+    int     _digit = MarketInfo(_sym, MODE_DIGITS);
+    double  _point = MarketInfo(_sym, MODE_POINT);
+
+    if (_digit == 5 || _digit == 3)    // Adjust for five (5) digit brokers.       
+        _point *= 10;
+
+    return(_point);
 }
