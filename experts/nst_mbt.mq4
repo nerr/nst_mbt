@@ -389,7 +389,7 @@ int slaveCheckCommand(string _arr)
                     }
                     else
                     {
-                        if(pubSetOrderSTTP(_ticket, TakeProfitPips, StopLossPips) == true)
+                        if(pubSetOrderSLTP(_ticket, TakeProfitPips, StopLossPips) == true)
                             pubSetCommandStatus(_arr[i][0], 9);
                         else
                             pubLog2Db("Close Slave order[" + _ticket + "] fail", "NST-MBT-LOG");
@@ -498,7 +498,7 @@ bool pubOrderCloseByTicket(int _ticket)
 }
 
 //--
-bool pubSetOrderSTTP(int _ticket, double _tp, double _sl)
+bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 {
     bool _status = false; //-- init status
     int _minpip = 1;
@@ -623,7 +623,7 @@ int pubGetRealPip(string _sym)
 }
 
 //-- get real min pip
-int pubGetMinPoint(string _sym)
+double pubGetMinPoint(string _sym)
 {
     int     _digit = MarketInfo(_sym, MODE_DIGITS);
     double  _point = MarketInfo(_sym, MODE_POINT);
