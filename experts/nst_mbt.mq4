@@ -1,4 +1,14 @@
-/* 
+/**
+ * Powered by Nerrsoft.com
+ *
+ * @author Leon Zhuang - leon@nerrsoft.com
+ * @link http://nerrsoft.com
+ * @version 0.2
+ * 
+ */
+
+
+/**
  * property infomation
  *
  */
@@ -8,8 +18,8 @@
 
 
 
-/* 
- * define extern
+/**
+ * define extern variables
  *
  */
 
@@ -32,7 +42,7 @@ extern string   dbname          = "nst";
 
 
 
-/* 
+/**
  * include library
  *
  */
@@ -41,8 +51,8 @@ extern string   dbname          = "nst";
 
 
 
-/* 
- * Global variable
+/**
+ * Global variables
  *
  */
 int     AccountId, AccountNum, AccountLev, SymbolId, PriceId;
@@ -50,7 +60,7 @@ string  SymbolName, SymExt, BrokerName;
 
 
 
-/* 
+/**
  * System Funcs
  *
  */
@@ -104,7 +114,7 @@ int start()
 }
 
 
-/* 
+/**
  * Mode Funcs
  *
  */
@@ -157,7 +167,7 @@ void test()
 
 
 
-/* 
+/**
  * Init Funcs
  * use to get init data and init settings
  */
@@ -241,7 +251,7 @@ int getSymbolId(string _sn)
 }
 
 
-/* 
+/**
  * Slave Funcs
  * the func who use for slave mode only
  */
@@ -262,7 +272,7 @@ int masterOrderTotal()
 }
 
 
-/* 
+/**
  * Slave Funcs
  * the func who use for slave mode only
  */
@@ -412,10 +422,34 @@ bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op, int _sid)
         return(true);
 }
 
+/**
+ * slaveGetMasterOrderTotalProfit()
+ * called by slave() and use to get closed master order total profit (profit + commission + swap) from database
+ * if func return -99999 then query fail
+ *
+ * @param int _cid - command id
+ */
+double slaveGetMasterOrderTotalProfit(int _cid)
+{
+    double _profit = -99999;
+    string _query = "SELECT mastercloseprofit,mastercloseswap,masterclosecommission from nst_mbt_master_closed_profit WHERE commandid=" + _cid;
+    string _res   = pmql_exec(_query);
+
+    if(StringLen(_res) > 0)
+    {
+        string _data[,3];
+        libPgsqlFetchArr(_res, _data);
+
+        _profit = StrToDouble(_data[0][0]) + StrToDouble(_data[0][1])) + StrToDouble(_data[0][2]);
+    }
+
+    return(_profit);
+}
 
 
 
-/* 
+
+/**
  * Public Funcs
  * public funcs in this EA
  */
@@ -450,7 +484,7 @@ bool pubOrderCloseByTicket(int _ticket)
 
 bool pubSetOrderSTTP()
 {
-    
+    //--
 }
 
 //--
@@ -528,5 +562,3 @@ bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
     else
         return(true);
 }
-
-
