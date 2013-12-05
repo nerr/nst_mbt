@@ -326,6 +326,7 @@ int slaveCheckCommand(string _arr)
     if(size <= 0) return(0);
 
     int _ticket = 0;
+    double _totalprofit = 0;
 
     for(int i = 0; i < size; i++)
     {
@@ -362,7 +363,6 @@ int slaveCheckCommand(string _arr)
         }
         else if(_arr[i][4] == "5") //-- todo -> need to test
         {
-            
             if()
             {
                 pubSetCommandStatus(_arr[i][0], 4);
@@ -370,7 +370,7 @@ int slaveCheckCommand(string _arr)
         }
         else if(_arr[i][4] == "8")
         {
-            _ticket = _arr[i][10];
+            _ticket = StrToInteger(_arr[i][10]);
             if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
                 //-- delete pending order
@@ -378,7 +378,23 @@ int slaveCheckCommand(string _arr)
                     OrderDelete(_ticket);
                 else
                 {
-                    //pubOrderClose(_ticket);
+                    _totalprofit = 0;
+                    _totalprofit = slaveGetMasterOrderTotalProfit(_arr[i][0]) + OrderProfit() + OrderSwap() + OrderCommission();
+
+                    if(_totalprofit > 0)
+                    {
+                        if(pubOrderClose(_ticket) == true)
+                            pubSetCommandStatus(_arr[i][0], 9);
+                        else
+                            pubLog2Db("Close Slave order[" + _ticket + "] fail", "NST-MBT-LOG");
+                    }
+                    else
+                    {
+                        if(pubSetOrderSTTP(_ticket, TakeProfitPips, StopLossPips) == true)
+                            pubSetCommandStatus(_arr[i][0], 9);
+                        else
+                            pubLog2Db("Close Slave order[" + _ticket + "] fail", "NST-MBT-LOG");
+                    }
                 }
             }
             else
@@ -429,7 +445,7 @@ bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op, int _sid)
  *
  * @param int _cid - command id
  */
-double slaveGetMasterOrderTotalProfit(int _cid)
+double slaveGetMasterOrderTotalProfit(string _cid)
 {
     double _profit = -99999;
     string _query = "SELECT mastercloseprofit,mastercloseswap,masterclosecommission from nst_mbt_master_closed_profit WHERE commandid=" + _cid;
