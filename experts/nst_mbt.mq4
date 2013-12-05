@@ -315,35 +315,62 @@ int slaveCheckCommand(string _arr)
 
     if(size <= 0) return(0);
 
+    int _ticket = 0;
+
     for(int i = 0; i < size; i++)
     {
         //-- open order command 
-        if(_arr[i][3] == "0")
+        if(_arr[i][4] == "0")
         {
-            int _ticket = 0;
-            _ticket = pubOrderOpen();
+            _ticket = 0;
+            _ticket = pubOrderOpen(); //-- todo ->
             if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
-                slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice());
+                slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice(), 2);
                 slaveInsertProfit(_arr[i][0]);
             }
             else
             {
                 pubSetCommandStatus(_arr[i][0], 1);
-                pubLog2Db("Slave Open Order fail, command[" + _arr[i][0] + "]", "NST-MBT-LOG");
+                pubLog2Db("Slave open order fail, command[" + _arr[i][0] + "]", "NST-MBT-LOG");
             }
         }
-        else if(_arr[i][3] == "3")
+        else if(_arr[i][4] == "3")
         {
-            
+            _ticket = 0;
+            _ticket = pubOrderOpen(); //-- todo ->
+            if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
+            {
+                slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice(), 5);
+                slaveInsertProfit(_arr[i][0]);
+            }
+            else
+            {
+                pubSetCommandStatus(_arr[i][0], 4);
+                pubLog2Db("Slave open limit order fail, command[" + _arr[i][0] + "]", "NST-MBT-LOG");
+            }
         }
-        else if(_arr[i][3] == "6")
+        else if(_arr[i][4] == "5") //-- todo -> need to test
         {
             
+            if()
+            {
+                pubSetCommandStatus(_arr[i][0], 4);
+            }
         }
-        else if(_arr[i][3] == "8")
+        else if(_arr[i][4] == "8")
         {
-            
+            _ticket = _arr[i][10];
+            if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
+            {
+                //-- delete pending order
+                if(OrderTpye() > 1) OrderDelete(_ticket);
+                //--
+                
+
+            }
+            else
+                pubSetCommandStatus(_arr[i][0], 9);
         }
     }
 
@@ -369,10 +396,10 @@ bool slaveInsertProfit(string _cid)
         return(true);
 }
 
-//-- command id & order ticket & open price
-bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op)
+//-- command id & order ticket & open price & command status id
+bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op, int _sid)
 {
-    string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + ", slaveorderid=" + _ticket + ", slaveopenprice=" + _op + " WHERE id=" + _cid;
+    string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + ", slaveorderid=" + _ticket + ", slaveopenprice=" + _op + ",WHERE id=" + _cid;
     string _res   = pmql_exec(_query);
     if(StringLen(_res)>0)
     {
@@ -455,7 +482,7 @@ int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr
     //-- make where
     string _where = "";
     if(_mode == "slave")
-        _where = " WHERE slaveaid=" + _aid + " AND orderstatus in (0,3,6,8)";
+        _where = " WHERE slaveaid=" + _aid + " AND orderstatus in (0,3,5,8)";
     else if(_mode == "master")
         _where = " WHERE masteraid=" + _aid + " AND orderstatus in (0,1,2,4,5,6)";
 
@@ -464,7 +491,7 @@ int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr
     //-- query command
     int _rows = 0;
     string query, res;
-    query = "select id,masteraid,slaveaid,commandstatus,commandtype,symbolid,masteropenprice,slaveopenprice from nst_mbt_command" + _where;
+    query = "select id, masteraid, slaveaid, createtime, commandstatus, commandtype, symbolid, orderlots, ordercomment, masterorderid, slaveorderid, masteropenprice, slaveopenprice, ordermagicnum from nst_mbt_command" + _where;
     res = pmql_exec(query);
 
     //-- get array result and result row number
