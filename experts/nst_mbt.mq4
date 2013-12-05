@@ -364,10 +364,12 @@ int slaveCheckCommand(string _arr)
             if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
                 //-- delete pending order
-                if(OrderTpye() > 1) OrderDelete(_ticket);
-                //--
-                
-
+                if(OrderTpye() > 1)
+                    OrderDelete(_ticket);
+                else
+                {
+                    //pubOrderClose(_ticket);
+                }
             }
             else
                 pubSetCommandStatus(_arr[i][0], 9);
@@ -432,9 +434,18 @@ int pubOrderOpen()
     //-- todo -> slave order use commandid as comment
 }
 
-bool pubOrderClose()
+bool pubOrderCloseByTicket(int _ticket)
 {
+    bool _status = false;
+    if(OrderSelect(_ticket, SELECT_BY_TICKET))
+    {
+      if (OrderType() == OP_BUY)  _status = OrderClose(_ticket, OrderLots(), MarketInfo(OrderSymbol(), MODE_BID), 3);
+      if (OrderType() == OP_SELL) _status = OrderClose(_ticket, OrderLots(), MarketInfo(OrderSymbol(), MODE_ASK), 3);
+    }
+    else
+        pubLog2Db("Close order by ticket fail can not select the ticket[" + _ticket + "] " + GetLastError(), "NST-MBT-LOG");
 
+    return(_status);
 }
 
 bool pubSetOrderSTTP()
