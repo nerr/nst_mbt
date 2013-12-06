@@ -126,7 +126,7 @@ void master()
     masterHandleCommand();
 
     //-- get local price bid & ask
-    masterDiffPrice(SymbolName);
+    masterDiffPrice();
 
     //-- load avilable slave price and find chance
 
@@ -319,7 +319,7 @@ int slaveUpdateOrderProfit(string _arr[][])
 }
 
 //--
-int slaveCheckCommand(string _arr)
+int slaveCheckCommand(string _arr[][])
 {
     int size = ArrayRange(_arr, 1);
     if(size <= 0) return(0);
@@ -374,7 +374,7 @@ int slaveCheckCommand(string _arr)
             if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
                 slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice(), 5);
-                slaveInsertProfit(_arr[i][0]);
+                slaveInsertProfit(_arr[i][0], _ticket);
             }
             else
             {
@@ -394,7 +394,7 @@ int slaveCheckCommand(string _arr)
             _ticket = StrToInteger(_arr[i][10]);
             if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
-                if(OrderTpye() > 1) //-- delete pending order
+                if(OrderType() > 1) //-- delete pending order
                     OrderDelete(_ticket);
                 else                //-- close order
                 {
@@ -403,7 +403,7 @@ int slaveCheckCommand(string _arr)
 
                     if(_totalprofit > 0)
                     {
-                        if(pubOrderClose(_ticket) == true)
+                        if(pubOrderCloseByTicket(_ticket) == true)
                             pubSetCommandStatus(_arr[i][0], 9);
                         else
                             pubLog2Db("Close Slave order[" + _ticket + "] fail", "NST-MBT-LOG");
@@ -418,7 +418,9 @@ int slaveCheckCommand(string _arr)
                 }
             }
             else
+            {
                 pubSetCommandStatus(_arr[i][0], 9);
+            }
         }
     }
 
@@ -590,7 +592,7 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 }
 
 //--
-int pubGetOrderArray(string _sym, string _arr[][], int _mn = 0) //-- magic number = 0 mean all order
+int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
     int symordernum = 0;
     //ArrayResize(_arr, ordernum);
