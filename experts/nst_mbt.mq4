@@ -27,7 +27,7 @@ extern bool     EnableTrade     = false;    //-- control master only
 extern string   BASESETTING     = "---Base Setting---";
 extern string   RunningMode     = "slave";  //-- option: [master] or [slave] or [test]
 extern double   BaseLots        = 0.1;
-extern double   TholdPips       = 8.0;
+extern double   TholdPips       = 5.0;
 extern double   StopLossPips    = 50.0;
 extern double   TakeProfitPips  = 3.0;
 extern int      MagicNumber     = 5257;     //-- it is avliable only master mode
@@ -308,8 +308,8 @@ int slaveUpdateOrderProfit(string _arr[][])
     string res   = "";
     for(int i = 0; i < size; i++)
     {
-        query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _arr[i][9] + ",slaveswap=" + _arr[i][9] + ", slavecommission=" + _arr[i][4] + " logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE commandid=" + _cid;
-        string res = pmql_exec(query);
+        query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _arr[i][9] + ",slaveswap=" + _arr[i][6] + ", slavecommission=" + _arr[i][4] + " logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE slaveorderticket=" + _arr[i][0];
+        res = pmql_exec(query);
 
         if(StringLen(res)>0)
             pubLog2Db("Update slave profit to db error: SQL return [" + res + "]", "NST-MBT-LOG");
@@ -322,23 +322,39 @@ int slaveUpdateOrderProfit(string _arr[][])
 int slaveCheckCommand(string _arr)
 {
     int size = ArrayRange(_arr, 1);
-
     if(size <= 0) return(0);
 
-    int _ticket = 0;
-    double _totalprofit = 0;
+    int     _ticket      = 0;
+    int     _ordertype   = 0;
+    double  _totalprofit = 0;
+    double  _price       = 0;
 
     for(int i = 0; i < size; i++)
     {
         //-- open order command 
         if(_arr[i][4] == "0")
         {
-            _ticket = 0;
-            _ticket = pubOrderOpen(); //-- todo ->
+            _ordertype = StrToInteger(_arr[i][5]);
+            if(_ordertype == 0 && StrToDouble(_arr[i][11]) > Ask)
+            {
+                _price = Ask;
+            }
+            else if(_ordertype == 1 && StrToDouble(_arr[i][11]) < Bid)
+            {
+                _price = Bid;
+            }
+            else
+            {
+                pubSetCommandStatus(_arr[i][0], 1);
+                pubLog2Db("Slave open order fail no chance, command[" + _arr[i][0] + "]", "NST-MBT-LOG");
+                continue;
+            }
+
+            _ticket = pubOrderOpen(SymbolName + SymExt, _ordertype, StrToDouble(_arr[i][7]), _price, MagicNumber, _arr[i][0]);
             if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
                 slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice(), 2);
-                slaveInsertProfit(_arr[i][0]);
+                slaveInsertProfit(_arr[i][0], _ticket);
             }
             else
             {
@@ -348,8 +364,13 @@ int slaveCheckCommand(string _arr)
         }
         else if(_arr[i][4] == "3")
         {
-            _ticket = 0;
-            _ticket = pubOrderOpen(); //-- todo ->
+            _ordertype = StrToInteger(_arr[i][5]) + 2;
+            if(_ordertype == 2)
+                _price = StrToDouble(_arr[i][11]) - TholdPips * pubGetRealPip(SymbolName + SymExt) * pubGetMinPoint(SymbolName + SymExt);
+            else if(_ordertype == 3)
+                _price = StrToDouble(_arr[i][11]) + TholdPips * pubGetRealPip(SymbolName + SymExt) * pubGetMinPoint(SymbolName + SymExt);
+
+            _ticket = pubOrderOpen(SymbolName + SymExt, _ordertype, StrToDouble(_arr[i][7]), _price, MagicNumber, _arr[i][0]);
             if(_ticket > 0 && OrderSelect(_ticket, SELECT_BY_TICKET) == true)
             {
                 slaveUpdateCommandInfo(_arr[i][0], _ticket, OrderOpenPrice(), 5);
@@ -363,7 +384,7 @@ int slaveCheckCommand(string _arr)
         }
         else if(_arr[i][4] == "5") //-- todo -> need to test
         {
-            if()
+            if(true)
             {
                 pubSetCommandStatus(_arr[i][0], 4);
             }
@@ -407,12 +428,12 @@ int slaveCheckCommand(string _arr)
 //--
 void slaveCheckOrder()
 {
-    int size = ArrayRange(_arr, 1);
+    //int size = ArrayRange(_arr, 1);
 }
 
-bool slaveInsertProfit(string _cid)
+bool slaveInsertProfit(string _cid, string _ticket)
 {
-    string _query = "INSERT INTO nst_mbt_slave_profit (commandid) VALUES (" + _cid + ")";
+    string _query = "INSERT INTO nst_mbt_slave_profit (commandid, slaveorderticket) VALUES (" + _cid + ", " + _ticket + ")";
     string _res   = pmql_exec(_query);
     if(StringLen(_res)>0)
     {
@@ -455,11 +476,13 @@ double slaveGetMasterOrderTotalProfit(string _cid)
         string _data[,3];
         libPgsqlFetchArr(_res, _data);
 
-        _profit = StrToDouble(_data[0][0]) + StrToDouble(_data[0][1])) + StrToDouble(_data[0][2]);
+        _profit = StrToDouble(_data[0][0]) + StrToDouble(_data[0][1]) + StrToDouble(_data[0][2]);
     }
 
     return(_profit);
 }
+
+
 
 
 
@@ -469,7 +492,15 @@ double slaveGetMasterOrderTotalProfit(string _cid)
  * public funcs in this EA
  */
 
-void pubLog2Db(string _logtext, string _type="Information")
+
+/**
+ * pubLog2Db()
+ * use insert the log information to database
+ *
+ * @param string _logtext
+ * @param string _type = "Information"
+ */
+void pubLog2Db(string _logtext, string _type = "Information")
 {
     libDebugOutputLog(_logtext, _type);
     string query = "INSERT INTO nst_mbt_tradinglog (logdatetime, logtype, logcontent) VALUES ('" + libDatetimeTm2str(TimeLocal()) + "', '" + _type + "', '" + _logtext + "')";
@@ -478,11 +509,31 @@ void pubLog2Db(string _logtext, string _type="Information")
         libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
 }
 
-int pubOrderOpen()
+/**
+ * pubOrderOpen()
+ * called by master mode and slave mode when send open order 
+ * return[int] ticket number if return 0 mean open order fail
+ *
+ * @param string    _symbol
+ * @param int       _type
+ * @param double    _lot
+ * @param double    _price
+ * @param int       _magic
+ * @param string    _comment= ""
+ */
+int pubOrderOpen(string _symbol, int _type, double _lot, double _price, int _magic, string _comment= "")
 {
-    //-- todo -> slave order use commandid as comment
+    int _t = OrderSend(_symbol, _type, _lot, _price, 0, 0, 0, _comment, _magic);
+    return(_t);
 }
 
+
+/**
+ * pubOrderCloseByTicket()
+ * close order by ticket, return bool close order status (success or fail)
+ *
+ * @param int _ticket
+ */
 bool pubOrderCloseByTicket(int _ticket)
 {
     bool _status = false;
@@ -502,6 +553,8 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 {
     bool _status = false; //-- init status
     int _minpip = 1;
+    int _stoplevel;
+    int _pip;
 
     if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
     {
@@ -522,14 +575,14 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
         if(OrderType() == OP_BUY)
         {
             _tp = OrderOpenPrice() + _tp;
-            _sl = OrderOpenPrice() - _slx;
-            _status = OrderModify(OrderTicket(), OrderOpenPrice(), Bid-Point*TrailingStop, OrderTakeProfit(), 0);
+            _sl = OrderOpenPrice() - _sl;
+            _status = OrderModify(OrderTicket(), OrderOpenPrice(), _tp, _sl, OrderTakeProfit(), 0);
         }
         if(OrderType() == OP_SELL)
         {
             _tp = OrderOpenPrice() - _tp;
             _sl = OrderOpenPrice() + _sl;
-            _status = OrderModify(OrderTicket(), OrderOpenPrice(), Bid-Point*TrailingStop, OrderTakeProfit(), 0);
+            _status = OrderModify(OrderTicket(), OrderOpenPrice(), _tp, _sl, OrderTakeProfit(), 0);
         }
     }
 
