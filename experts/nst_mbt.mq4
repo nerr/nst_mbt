@@ -13,7 +13,7 @@
  *
  */
 
-#property copyright "Copyright ? 2013 Nerrsoft.com"
+#property copyright "Copyright ? 2014 Nerrsoft.com"
 #property link      "http://nerrsoft.com"
 
 
@@ -64,7 +64,6 @@ string  SymbolName, SymExt, BrokerName;
  * System Funcs
  *
  */
-
 //-- init
 int init()
 {
@@ -118,7 +117,6 @@ int start()
  * Mode Funcs
  *
  */
-
 //-- master mode
 void master()
 {
@@ -171,7 +169,6 @@ void test()
  * Init Funcs
  * use to get init data and init settings
  */
-
 //--
 int getAccountId(int _an, string _bn, int _lev)
 {
@@ -255,7 +252,6 @@ int getSymbolId(string _sn)
  * Slave Funcs
  * the func who use for slave mode only
  */
-
 void masterHandleCommand()
 {
 
@@ -276,7 +272,6 @@ int masterOrderTotal()
  * Slave Funcs
  * the func who use for slave mode only
  */
-
 //-- update price to database
 //-- pid (price id) = symbol record id in price table
 void slaveUpdatePrice(int _pid)
