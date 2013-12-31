@@ -165,6 +165,18 @@ void test()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Init Funcs
  * use to get init data and init settings
@@ -266,6 +278,19 @@ int masterOrderTotal()
 {
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -478,6 +503,15 @@ double slaveGetMasterOrderTotalProfit(string _cid)
 
     return(_profit);
 }
+
+
+
+
+
+
+
+
+
 
 
 
