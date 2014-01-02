@@ -320,7 +320,7 @@ void slaveUpdatePrice(int _pid)
 //-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
 int slaveUpdateOrderProfit(string _arr[][])
 {
-    int size = ArrayRange(_arr, 1);
+    int size = ArrayRange(_arr, 0);
 
     if(size <= 0) return(0);
 
@@ -654,9 +654,6 @@ int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic numb
     }
 
     ArrayResize(_arr, symordernum);
-
-    Alert(symordernum);
-
     return(symordernum);
 }
 
