@@ -55,7 +55,7 @@ extern string   dbname          = "nst";
  * Global variables
  *
  */
-int     AccountId, AccountNum, AccountLev, SymbolId, PriceId;
+int     AccountId, AccountNum, AccountLev, SymbolId, PriceId, AccountType;
 string  SymbolName, SymExt, BrokerName;
 
 
@@ -82,8 +82,12 @@ int init()
     SymbolName = StringSubstr(Symbol(), 0, 6);
     if(StringLen(Symbol()) > 6)
         SymExt = StringSubstr(Symbol(),6);
+    if(IsDemo())
+        AccountType = 1;
+    else
+        AccountType = 0;
     //-- get account id from db
-    AccountId  = getAccountId(AccountNum, BrokerName, AccountLev); //-- todo -> get AccountId
+    AccountId  = getAccountId(AccountNum, BrokerName, AccountLev, AccountType); //-- todo -> get AccountId
     //-- get symbolid and priceid
     SymbolId   = getSymbolId(SymbolName);
     PriceId    = getPriceId(AccountId, SymbolId);
@@ -182,14 +186,14 @@ void test()
  * use to get init data and init settings
  */
 //--
-int getAccountId(int _an, string _bn, int _lev)
+int getAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
 {
     int _id = 0;
     string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
     string res = pmql_exec(squery);
     if(res == "")
     {
-        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ")";
+        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage, accounttype) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ", " + _isdemo + ")";
         res = pmql_exec(iquery);
         if(res == "")
         {
