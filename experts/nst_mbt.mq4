@@ -534,10 +534,14 @@ double slaveGetMasterOrderTotalProfit(string _cid)
 void pubLog2Db(string _logtext, string _type = "Information")
 {
     libDebugOutputLog(_logtext, _type);
+    //-- adjust log text len 400 is max (db)
+    if(StringLen(_logtext) > 400)
+        _logtext = StringSubstr(_logtext, 0, 400);
+
     string query = "INSERT INTO nst_mbt_tradinglog (logdatetime, logtype, logcontent) VALUES ('" + libDatetimeTm2str(TimeLocal()) + "', '" + _type + "', '" + _logtext + "')";
     string res = pmql_exec(query);
     if(StringLen(res)>0)
-        libDebugSendAlert("Can not insert log to database.", "NST-MBT-LOG");
+        libDebugSendAlert("Can not insert log to database [" + res + "].", "NST-MBT-LOG");
 }
 
 /**
@@ -650,6 +654,8 @@ int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic numb
     }
 
     ArrayResize(_arr, symordernum);
+
+    Alert(symordernum);
 
     return(symordernum);
 }
