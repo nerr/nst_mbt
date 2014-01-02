@@ -3,9 +3,12 @@
  *
  * @author Leon Zhuang - leon@nerrsoft.com
  * @link http://nerrsoft.com
- * @version 0.2
+ * @version 0.2 dev
  * 
  */
+
+
+
 
 
 /**
@@ -18,12 +21,16 @@
 
 
 
+
+
+
 /**
  * define extern variables
  *
  */
 
 extern bool     EnableTrade     = false;    //-- control master only
+
 extern string   BASESETTING     = "---Base Setting---";
 extern string   RunningMode     = "slave";  //-- option: [master] or [slave] or [test]
 extern double   BaseLots        = 0.1;
@@ -158,7 +165,7 @@ void slave()
     slaveUpdatePrice(PriceId);
 
     //-- update order profit + swap + commission to db
-    slaveUpdateOrderProfit(OrderArr);
+    slaveUpdateOrderProfit(OrderArr, AccountId);
 }
 
 //-- test mode
@@ -322,7 +329,7 @@ void slaveUpdatePrice(int _pid)
 }
 
 //-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
-int slaveUpdateOrderProfit(string _arr[][])
+int slaveUpdateOrderProfit(string _arr[][], int _aid)
 {
     int size = ArrayRange(_arr, 0);
 
@@ -332,7 +339,7 @@ int slaveUpdateOrderProfit(string _arr[][])
     string res   = "";
     for(int i = 0; i < size; i++)
     {
-        query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _arr[i][9] + ",slaveswap=" + _arr[i][6] + ", slavecommission=" + _arr[i][4] + " logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE slaveorderticket=" + _arr[i][0];
+        query = "UPDATE nst_mbt_slave_profit SET slaveorderprofit=" + _arr[i][9] + ",slaveswap=" + _arr[i][6] + ", slavecommission=" + _arr[i][4] + " logtime='" + libDatetimeTm2str(TimeLocal()) + "' WHERE slaveorderticket=" + _arr[i][0] + " AND accountid=" + _aid;
         res = pmql_exec(query);
 
         if(StringLen(res)>0)
