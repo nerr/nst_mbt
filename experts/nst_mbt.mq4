@@ -159,7 +159,7 @@ void slave()
     pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
 
     //-- check order
-    slaveCheckOrder();
+    slaveCheckOrder(OrderArr);
 
     //-- update price to db
     slaveUpdatePrice(PriceId);
@@ -459,9 +459,10 @@ int slaveCheckCommand(string _arr[][])
 }
 
 //--
-void slaveCheckOrder()
+void slaveCheckOrder(string _oarr[][])
 {
-    //int size = ArrayRange(_arr, 1);
+    //int size = ArrayRange(_oarr, 0);
+
 }
 
 bool slaveInsertProfit(string _cid, string _ticket)
