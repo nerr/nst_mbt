@@ -1,9 +1,9 @@
 /**
  * Powered by Nerrsoft.com
  *
- * @author Leon Zhuang - leon@nerrsoft.com
+ * @author Leon Zhuang - leon@nerrsoft.com - @nerrsoft
  * @link http://nerrsoft.com
- * @version 0.2 dev
+ * @version 0.2 - dev
  * 
  */
 
@@ -461,8 +461,8 @@ int slaveCheckCommand(string _arr[][])
 //--
 void slaveCheckOrder(string _oarr[][])
 {
-    //int size = ArrayRange(_oarr, 0);
-
+    int size = ArrayRange(_oarr, 0);
+    
 }
 
 bool slaveInsertProfit(string _cid, string _ticket)
