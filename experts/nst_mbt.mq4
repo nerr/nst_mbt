@@ -41,7 +41,7 @@ extern int      MagicNumber     = 5257;     //-- it is avliable only master mode
 extern bool     MoneyManagment  = false;
 
 extern string   DBSETTING       = "---PostgreSQL Database Settings---";
-extern string   dbhost          = "192.168.11.6";
+extern string   dbhost          = "pi.nerrsoft.com";    //-- default host is a intranet server
 extern string   dbport          = "5432";
 extern string   dbuser          = "postgres";
 extern string   dbpass          = "911911";
