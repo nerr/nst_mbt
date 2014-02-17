@@ -9,18 +9,12 @@
 
 
 
-
-
 /**
  * property infomation
  *
  */
-
 #property copyright "Copyright ? 2014 Nerrsoft.com"
 #property link      "http://nerrsoft.com"
-
-
-
 
 
 
@@ -28,7 +22,6 @@
  * define extern variables
  *
  */
-
 extern bool     EnableTrade     = false;    //-- control master only
 
 extern string   BASESETTING     = "---Base Setting---";
@@ -71,8 +64,7 @@ string  SymbolName, SymExt, BrokerName;
  * System Funcs
  *
  */
-//-- init
-int init()
+int init()  //-- init
 {
     //-- connect to pgsql
     string res = pmql_connect(dbhost, dbport, dbuser, dbpass, dbname);
@@ -173,17 +165,6 @@ void test()
 {
     //-- todo -> test mode
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -289,17 +270,6 @@ int masterOrderTotal()
 {
 
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -462,9 +432,24 @@ int slaveCheckCommand(string _arr[][])
 void slaveCheckOrder(string _oarr[][])
 {
     int size = ArrayRange(_oarr, 0);
-    
+    if(size <= 0) return(0);
+
+    //--
+    for(int i = 0; i < size; i++)
+    {
+
+    }
+
 }
 
+/**
+ * slaveInsertProfit()
+ * insert slave order proift to database
+ * return[bool] insert success or fail
+ *
+ * @param string    _cid    [command id]
+ * @param string    _ticket [order ticket number]
+ */
 bool slaveInsertProfit(string _cid, string _ticket)
 {
     string _query = "INSERT INTO nst_mbt_slave_profit (commandid, slaveorderticket) VALUES (" + _cid + ", " + _ticket + ")";
@@ -478,7 +463,17 @@ bool slaveInsertProfit(string _cid, string _ticket)
         return(true);
 }
 
-//-- command id & order ticket & open price & command status id
+/**
+ * slaveUpdateCommandInfo()
+ * command id & order ticket & open price & command status id
+ * return[bool] update success or fail
+ *
+ * @param string    _cid    [command id]
+ * @param string    _ticket [order ticket number]
+ * @param double    _op     []
+ * @param int       _sid    [command status id]
+ */
+//-- 
 bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op, int _sid)
 {
     string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + ", slaveorderid=" + _ticket + ", slaveopenprice=" + _op + ",WHERE id=" + _cid;
@@ -515,17 +510,6 @@ double slaveGetMasterOrderTotalProfit(string _cid)
 
     return(_profit);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -637,7 +621,7 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 }
 
 //--
-int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
+int (string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
     int symordernum = 0;
     //ArrayResize(_arr, ordernum);
