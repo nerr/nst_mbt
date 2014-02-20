@@ -86,10 +86,10 @@ int init()  //-- init
     else
         AccountType = 0;
     //-- get account id from db
-    AccountId  = getAccountId(AccountNum, BrokerName, AccountLev, AccountType); //-- todo -> get AccountId
+    AccountId  = pubGetAccountId(AccountNum, BrokerName, AccountLev, AccountType); //-- todo -> get AccountId
     //-- get symbolid and priceid
-    SymbolId   = getSymbolId(SymbolName);
-    PriceId    = getPriceId(AccountId, SymbolId);
+    SymbolId   = pubGetSymbolId(SymbolName);
+    PriceId    = pubGetPriceId(AccountId, SymbolId);
 
     //-- init price record
     //initPriceTable(); //-- todo -> ...
@@ -164,91 +164,6 @@ void slave()
 void test()
 {
     //-- todo -> test mode
-}
-
-
-
-
-/**
- * Init Funcs
- * use to get init data and init settings
- */
-//--
-int getAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage, accounttype) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ", " + _isdemo + ")";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
-}
-
-//-- 
-int getPriceId(int _aid, int _sid)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_mbt_price WHERE accountid='" + _aid + "' AND symbolid='" + _sid + "'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES (" + _aid + ", " + _sid + ")";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
-}
-
-//--
-int getSymbolId(string _sn)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_mbt_symbol WHERE symbolname='" + _sn +"'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_mbt_symbol (symbolname) VALUES ('" + _sn + "')";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
 }
 
 
@@ -778,4 +693,82 @@ double pubGetMinPoint(string _sym)
         _point *= 10;
 
     return(_point);
+}
+
+//--
+int pubGetAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage, accounttype) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ", " + _isdemo + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+//-- 
+int pubGetPriceId(int _aid, int _sid)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_price WHERE accountid='" + _aid + "' AND symbolid='" + _sid + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES (" + _aid + ", " + _sid + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+//--
+int pubGetSymbolId(string _sn)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_symbol WHERE symbolname='" + _sn +"'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_symbol (symbolname) VALUES ('" + _sn + "')";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
 }
