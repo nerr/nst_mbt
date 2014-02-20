@@ -105,15 +105,25 @@ int deinit()
 //-- start
 int start()
 {
+    //-- get orders array
+    string CommandArr[500, 8];
+    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
+
+    //-- get orders array
+    string OrderArr[500, 10];
+    pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
+
+    //-- run by mode
     if(RunningMode == "master")
-        master();
+        master(CommandArr, OrderArr);
     else if(RunningMode == "slave")
-        slave();
+        slave(CommandArr, OrderArr);
     else if(RunningMode == "test")
         test();
     else
-        pubLog2Db("Please check the mode setting (master or slave or test).");
+        pubLog2Db("Please check the mode setting (master, slave or test).");
 }
+
 
 
 /**
@@ -121,10 +131,13 @@ int start()
  *
  */
 //-- master mode
-void master()
+void master(string _carr[][], string _oarr[][])
 {
+    //-- check order
+    masterCheckOrder(_oarr);
+
     //-- check command
-    masterHandleCommand();
+    masterHandleCommand(_carr);
 
     //-- get local price bid & ask
     masterDiffPrice();
@@ -137,27 +150,19 @@ void master()
 }
 
 //-- slave mode
-void slave()
+void slave(string _carr[][], string _oarr[][])
 {
-    //-- get orders array
-    string CommandArr[500, 8];
-    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
-
     //-- check commands
-    slaveCheckCommand(CommandArr);
-
-    //-- get orders array
-    string OrderArr[500, 10];
-    pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
+    slaveCheckCommand(_carr);
 
     //-- check order
-    slaveCheckOrder(OrderArr);
+    slaveCheckOrder(_oarr);
 
     //-- update price to db
     slaveUpdatePrice(PriceId);
 
     //-- update order profit + swap + commission to db
-    slaveUpdateOrderProfit(OrderArr, AccountId);
+    slaveUpdateOrderProfit(_oarr, AccountId);
 }
 
 //-- test mode
@@ -173,6 +178,11 @@ void test()
  * Master Funcs
  * the func who use for slave mode only
  */
+void masterCheckOrder()
+{
+
+}
+
 void masterHandleCommand()
 {
 
@@ -183,10 +193,6 @@ void masterDiffPrice()
 
 }
 
-int masterOrderTotal()
-{
-
-}
 
 
 
