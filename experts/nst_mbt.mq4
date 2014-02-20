@@ -428,18 +428,73 @@ int slaveCheckCommand(string _arr[][])
     return(1);
 }
 
-//--
-void slaveCheckOrder(string _oarr[][])
+/**
+ * slaveCheckOrder()
+ * check order who has problem
+ * return[void]
+ *
+ * @param string    _oarr   [array of order]
+ * @param string    _carr   [array or command]
+ */
+void slaveCheckOrder(string _oarr[][], string _carr[][])
 {
-    int size = ArrayRange(_oarr, 0);
-    if(size <= 0) return(0);
+    int osize = ArrayRange(_oarr, 0);
+    int csize = ArrayRange(_carr, 0);
+    //if(size <= 0) return(0);
+    int i, j, s; //-- counter
+    int ticket;
 
-    //--
-    for(int i = 0; i < size; i++)
+
+    //-- check has order no command and set SL & TP
+    for(i = 0; i < osize; i++)
     {
+        s = 0;
+        //-- check
+        for(j = 0; j < csize; j++)
+        {
+            if(_oarr[i][0] == _carr[j][10])
+            {
+                s = 1;
+                continue;
+            }
+        }
 
+        //-- set
+        if(s == 0)
+        {
+            ticket = StrToInteger(_oarr[i][0]);
+            if(OrderSelect(ticket, SELECT_BY_TICKET) == true)
+            {
+                if(OrderStopLoss() == 0 || OrderTakeProfit() == 0)
+                    pubSetOrderSLTP(ticket, TakeProfitPips, StopLossPips);
+            }
+        }
     }
 
+    //-- check has order no command
+    for(i = 0; i < csize; i++)
+    {
+        s = 0;
+        for(j = 0; j < osize; j++)
+        {
+            if(_oarr[i][0] == _carr[j][10])
+            {
+                x = 1;
+                continue;
+            }
+        }
+
+        //-- 
+        if(s == 0)
+        {
+            ticket = StrToInteger(_carr[i][10]);
+            if(OrderSelect(ticket, SELECT_BY_TICKET, MODE_HISTORY) == true)
+            {
+                if(OrderCLosePrice() > 0)
+                    pubSetCommandStatus(_carr[i][10], 6);
+            }
+        }
+    }
 }
 
 /**
@@ -470,7 +525,7 @@ bool slaveInsertProfit(string _cid, string _ticket)
  *
  * @param string    _cid    [command id]
  * @param string    _ticket [order ticket number]
- * @param double    _op     []
+ * @param double    _op     [order open price]
  * @param int       _sid    [command status id]
  */
 //-- 
@@ -579,7 +634,15 @@ bool pubOrderCloseByTicket(int _ticket)
     return(_status);
 }
 
-//--
+/**
+ * pubSetOrderSLTP()
+ * set order stop loss and take profit
+ * return[bool] set sucess or fail
+ *
+ * @param int       _ticket
+ * @param double    _tp [pip]
+ * @param double    _sl [pip]
+ */
 bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 {
     bool _status = false; //-- init status
@@ -621,7 +684,7 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 }
 
 //--
-int (string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
+int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
     int symordernum = 0;
     //ArrayResize(_arr, ordernum);
