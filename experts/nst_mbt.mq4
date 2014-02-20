@@ -453,7 +453,7 @@ void slaveCheckOrder(string _oarr[][], string _carr[][])
         {
             if(_oarr[i][0] == _carr[j][10])
             {
-                x = 1;
+                s = 1;
                 continue;
             }
         }
