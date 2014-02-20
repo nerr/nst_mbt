@@ -598,7 +598,15 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
     return(_status);
 }
 
-//--
+/**
+ * pubGetOrderArray()
+ * get order from metatrader4 client into an array
+ * return[int] array size
+ *
+ * @param string    _sym        [symbol name]
+ * @param string    &_arr[][]   [empty array use to fill order info]
+ * @param int       _mn         [magic number]
+ */
 int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
     int symordernum = 0;
@@ -631,7 +639,17 @@ int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic numb
     return(symordernum);
 }
 
-//-- public func - get command from db return result rows and string array (need define array index)
+/**
+ * pubGetCommandArray()
+ * get command from db return result rows and string array (need define array index
+ * return[int] array size
+ *
+ * @param int       _symid      [symbol id]
+ * @param string    _mode       [ea running mode: master/slave]
+ * @param int       _aid        [account id]
+ * @param int       _mn         [magic number]
+ * @param string    &_arr[][]   [empty command array]
+ */
 int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr[][])
 {
     //-- make where
@@ -659,7 +677,14 @@ int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr
     return(_rows);
 }
 
-//-- update command status
+/**
+ * pubSetCommandStatus()
+ * set command status in database by command id and status id
+ * return[bool] set command status sucess or not
+ *
+ * @param string    _cid    [command id]
+ * @param int       _sid    [status id] - status id list is in 'NST_MBT - Workflow_Order_And_Command.drawing' file
+ */
 bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
 {
     string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + " WHERE id=" + _cid;
@@ -673,7 +698,13 @@ bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
         return(true);
 }
 
-//-- get real pip
+/**
+ * pubGetRealPip()
+ * get current real pip
+ * return[int] real pip
+ *
+ * @param string    _sym    [symbol name]
+ */
 int pubGetRealPip(string _sym)
 {
     int _point_compat = 1;
@@ -683,7 +714,13 @@ int pubGetRealPip(string _sym)
     return(_point_compat);
 }
 
-//-- get real min pip
+/**
+ * pubGetMinPoint()
+ * get current min point
+ * return[double] min point
+ *
+ * @param string    _sym    [symbol name]
+ */
 double pubGetMinPoint(string _sym)
 {
     int     _digit = MarketInfo(_sym, MODE_DIGITS);
@@ -695,7 +732,16 @@ double pubGetMinPoint(string _sym)
     return(_point);
 }
 
-//--
+/**
+ * pubGetAccountId()
+ * get account id in database by account number, broker name, leverage and account type (demo or not)
+ * return[int] accunt id
+ *
+ * @param int       _an     [account number]
+ * @param string    _bn     [broker name]
+ * @param int       _lev    [account leverage]
+ * @param int       _isdemo [account type (demo or not)]
+ */
 int pubGetAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
 {
     int _id = 0;
@@ -721,7 +767,14 @@ int pubGetAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
         return(0);
 }
 
-//-- 
+/**
+ * pubGetPriceId()
+ * get price id in database by account id and symbol id
+ * return[int] price record id
+ *
+ * @param int   _aid  [account id]
+ * @param int   _sid  [symbol id]
+ */
 int pubGetPriceId(int _aid, int _sid)
 {
     int _id = 0;
@@ -747,7 +800,13 @@ int pubGetPriceId(int _aid, int _sid)
         return(0);
 }
 
-//--
+/**
+ * pubGetSymbolId()
+ * get symbol id in database by symbol name
+ * return[int] symbol id
+ *
+ * @param string    _sn   [symobl name]
+ */
 int pubGetSymbolId(string _sn)
 {
     int _id = 0;
