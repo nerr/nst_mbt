@@ -167,8 +167,10 @@ void test()
 }
 
 
+
+
 /**
- * Slave Funcs
+ * Master Funcs
  * the func who use for slave mode only
  */
 void masterHandleCommand()
@@ -213,7 +215,14 @@ void slaveUpdatePrice(int _pid)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
 }
 
-//-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
+/**
+ * slaveUpdateOrderProfit()
+ * update slave order profit info to `nst_mbt_slave_profit` table
+ * return[int]
+ *
+ * @param string    _arr    [array of orders]
+ * @param int       _aid    [metatrader account id]
+ */
 int slaveUpdateOrderProfit(string _arr[][], int _aid)
 {
     int size = ArrayRange(_arr, 0);
@@ -234,7 +243,13 @@ int slaveUpdateOrderProfit(string _arr[][], int _aid)
     return(1);
 }
 
-//--
+/**
+ * slaveCheckCommand()
+ * check command who need to handle
+ * return[int]
+ *
+ * @param string    _arr   [array of command]
+ */
 int slaveCheckCommand(string _arr[][])
 {
     int size = ArrayRange(_arr, 1);
