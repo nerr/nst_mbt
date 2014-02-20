@@ -134,19 +134,13 @@ int start()
 void master(string _carr[][], string _oarr[][])
 {
     //-- check order
-    masterCheckOrder(_oarr);
+    masterCheckOrder(_oarr, _carr);
 
     //-- check command
     masterHandleCommand(_carr);
 
     //-- get local price bid & ask
-    masterDiffPrice();
-
-    //-- load avilable slave price and find chance
-
-
-    //-- todo ->
-
+    masterDiscoverChance();
 }
 
 //-- slave mode
@@ -156,7 +150,7 @@ void slave(string _carr[][], string _oarr[][])
     slaveCheckCommand(_carr);
 
     //-- check order
-    slaveCheckOrder(_oarr);
+    slaveCheckOrder(_oarr, _carr);
 
     //-- update price to db
     slaveUpdatePrice(PriceId);
@@ -178,20 +172,62 @@ void test()
  * Master Funcs
  * the func who use for slave mode only
  */
-void masterCheckOrder()
+void masterCheckOrder(string _oarr[][], string _carr[][])
+{
+    //-- has order no command
+
+    //-- has command no order
+
+    //-- has order and command
+}
+
+void masterHandleCommand(string _carr[][])
+{
+    //-- 6: slave order closed
+
+    //-- 0: slave not respond yet
+
+    //-- 1/4: slave open order failed
+
+    //-- 5: slave open limit order sucess
+}
+
+/**
+ * masterDiscoverChance()
+ * discover trading chance and begin trade
+ * return[void]
+ *
+ */
+void masterDiscoverChance()
 {
 
 }
 
-void masterHandleCommand()
+/**
+ * masterGetTotalProfit()
+ * get master and slave total profit (profit + swap + commission) by ticket
+ * return[double] total profit
+ *
+ * @param int    _mt  [master ticket]
+ * @param int    _st  [slave ticket]
+ */
+double masterGetTotalProfit(int _mt, int _st)
 {
 
 }
 
-void masterDiffPrice()
+/**
+ * masterGetSlaveTotalProfit()
+ * get slave total profit (profit + swap + commission) by ticket from database
+ * return[double] total profit
+ *
+ * @param int    _st  [slave ticket]
+ */
+double masterGetSlaveTotalProfit(int _st)
 {
 
 }
+
 
 
 
@@ -851,4 +887,17 @@ int pubGetSymbolId(string _sn)
         return(_id);
     else
         return(0);
+}
+
+
+/**
+ * pubGetOrderTotalProfit()
+ * get order total profit (profit + swap + commission) by ticket
+ * return[double] total profit
+ *
+ * @param int    _ticket   [symobl name]
+ */
+double pubGetOrderTotalProfit(int _ticket)
+{
+
 }
