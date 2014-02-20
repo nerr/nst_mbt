@@ -437,7 +437,9 @@ void slaveCheckOrder(string _oarr[][], string _carr[][])
             ticket = StrToInteger(_oarr[i][0]);
             if(OrderSelect(ticket, SELECT_BY_TICKET) == true)
             {
-                if(OrderStopLoss() == 0 || OrderTakeProfit() == 0)
+                if(pubGetOrderTotalProfit(ticket) > 0)
+                    pubOrderCloseByTicket(ticket);
+                else if(OrderStopLoss() == 0 || OrderTakeProfit() == 0)
                     pubSetOrderSLTP(ticket, TakeProfitPips, StopLossPips);
             }
         }
