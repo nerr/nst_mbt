@@ -211,9 +211,12 @@ void masterDiscoverChance()
  * @param int    _mt  [master ticket]
  * @param int    _st  [slave ticket]
  */
-double masterGetTotalProfit(int _mt, int _st)
+bool masterGetTotalProfit(int _mt, int _st, double &_totalprofit)
 {
+    bool status = false;
 
+
+    return(status);
 }
 
 /**
@@ -223,9 +226,17 @@ double masterGetTotalProfit(int _mt, int _st)
  *
  * @param int    _st  [slave ticket]
  */
-double masterGetSlaveTotalProfit(int _st)
+bool masterGetSlaveTotalProfit(int _st, double &_totalprofit)
 {
-    
+    bool status = false;
+    string squery = "SELECT accountid,commandid,logtime,slaveordercommission,slaveorderprofit,slaveorderswap,slaveorderticket FROM nst_mbt_slave_profit WHERE slaveorderticket=" + _st;
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+
+    }
+
+    return(status);
 }
 
 
