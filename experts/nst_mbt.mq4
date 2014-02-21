@@ -225,7 +225,7 @@ double masterGetTotalProfit(int _mt, int _st)
  */
 double masterGetSlaveTotalProfit(int _st)
 {
-
+    
 }
 
 
