@@ -9,18 +9,12 @@
 
 
 
-
-
 /**
  * property infomation
  *
  */
-
 #property copyright "Copyright ? 2014 Nerrsoft.com"
 #property link      "http://nerrsoft.com"
-
-
-
 
 
 
@@ -28,7 +22,6 @@
  * define extern variables
  *
  */
-
 extern bool     EnableTrade     = false;    //-- control master only
 
 extern string   BASESETTING     = "---Base Setting---";
@@ -71,8 +64,7 @@ string  SymbolName, SymExt, BrokerName;
  * System Funcs
  *
  */
-//-- init
-int init()
+int init()  //-- init
 {
     //-- connect to pgsql
     string res = pmql_connect(dbhost, dbport, dbuser, dbpass, dbname);
@@ -94,10 +86,10 @@ int init()
     else
         AccountType = 0;
     //-- get account id from db
-    AccountId  = getAccountId(AccountNum, BrokerName, AccountLev, AccountType); //-- todo -> get AccountId
+    AccountId  = pubGetAccountId(AccountNum, BrokerName, AccountLev, AccountType); //-- todo -> get AccountId
     //-- get symbolid and priceid
-    SymbolId   = getSymbolId(SymbolName);
-    PriceId    = getPriceId(AccountId, SymbolId);
+    SymbolId   = pubGetSymbolId(SymbolName);
+    PriceId    = pubGetPriceId(AccountId, SymbolId);
 
     //-- init price record
     //initPriceTable(); //-- todo -> ...
@@ -113,15 +105,25 @@ int deinit()
 //-- start
 int start()
 {
+    //-- get orders array
+    string CommandArr[500, 8];
+    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
+
+    //-- get orders array
+    string OrderArr[500, 10];
+    pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
+
+    //-- run by mode
     if(RunningMode == "master")
-        master();
+        master(CommandArr, OrderArr);
     else if(RunningMode == "slave")
-        slave();
+        slave(CommandArr, OrderArr);
     else if(RunningMode == "test")
         test();
     else
-        pubLog2Db("Please check the mode setting (master or slave or test).");
+        pubLog2Db("Please check the mode setting (master, slave or test).");
 }
+
 
 
 /**
@@ -129,43 +131,32 @@ int start()
  *
  */
 //-- master mode
-void master()
+void master(string _carr[][], string _oarr[][])
 {
+    //-- check order
+    masterCheckOrder(_oarr, _carr);
+
     //-- check command
-    masterHandleCommand();
+    masterHandleCommand(_carr);
 
     //-- get local price bid & ask
-    masterDiffPrice();
-
-    //-- load avilable slave price and find chance
-
-
-    //-- todo ->
-
+    masterDiscoverChance();
 }
 
 //-- slave mode
-void slave()
+void slave(string _carr[][], string _oarr[][])
 {
-    //-- get orders array
-    string CommandArr[500, 8];
-    pubGetCommandArray(SymbolId, RunningMode, AccountId, MagicNumber, CommandArr);
-
     //-- check commands
-    slaveCheckCommand(CommandArr);
-
-    //-- get orders array
-    string OrderArr[500, 10];
-    pubGetOrderArray(SymbolName + SymExt, OrderArr, MagicNumber);
+    slaveCheckCommand(_carr);
 
     //-- check order
-    slaveCheckOrder(OrderArr);
+    slaveCheckOrder(_oarr, _carr);
 
     //-- update price to db
     slaveUpdatePrice(PriceId);
 
     //-- update order profit + swap + commission to db
-    slaveUpdateOrderProfit(OrderArr, AccountId);
+    slaveUpdateOrderProfit(_oarr, AccountId);
 }
 
 //-- test mode
@@ -177,127 +168,65 @@ void test()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Init Funcs
- * use to get init data and init settings
- */
-//--
-int getAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage, accounttype) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ", " + _isdemo + ")";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
-}
-
-//-- 
-int getPriceId(int _aid, int _sid)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_mbt_price WHERE accountid='" + _aid + "' AND symbolid='" + _sid + "'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES (" + _aid + ", " + _sid + ")";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
-}
-
-//--
-int getSymbolId(string _sn)
-{
-    int _id = 0;
-    string squery = "SELECT id FROM nst_mbt_symbol WHERE symbolname='" + _sn +"'";
-    string res = pmql_exec(squery);
-    if(res == "")
-    {
-        string iquery = "INSERT INTO nst_mbt_symbol (symbolname) VALUES ('" + _sn + "')";
-        res = pmql_exec(iquery);
-        if(res == "")
-        {
-            res = pmql_exec(squery);
-            _id = StrToInteger(StringSubstr(res, 3, -1));
-        }
-    }
-    else
-        _id = StrToInteger(StringSubstr(res, 3, -1));
-
-    //-- return 
-    if(_id > 0)
-        return(_id);
-    else
-        return(0);
-}
-
-
-/**
- * Slave Funcs
+ * Master Funcs
  * the func who use for slave mode only
  */
-void masterHandleCommand()
+void masterCheckOrder(string _oarr[][], string _carr[][])
+{
+    //-- has order no command
+
+    //-- has command no order
+
+    //-- has order and command
+}
+
+void masterHandleCommand(string _carr[][])
+{
+    //-- 6: slave order closed
+
+    //-- 0: slave not respond yet
+
+    //-- 1/4: slave open order failed
+
+    //-- 5: slave open limit order sucess
+}
+
+/**
+ * masterDiscoverChance()
+ * discover trading chance and begin trade
+ * return[void]
+ *
+ */
+void masterDiscoverChance()
 {
 
 }
 
-void masterDiffPrice()
+/**
+ * masterGetTotalProfit()
+ * get master and slave total profit (profit + swap + commission) by ticket
+ * return[double] total profit
+ *
+ * @param int    _mt  [master ticket]
+ * @param int    _st  [slave ticket]
+ */
+double masterGetTotalProfit(int _mt, int _st)
 {
 
 }
 
-int masterOrderTotal()
+/**
+ * masterGetSlaveTotalProfit()
+ * get slave total profit (profit + swap + commission) by ticket from database
+ * return[double] total profit
+ *
+ * @param int    _st  [slave ticket]
+ */
+double masterGetSlaveTotalProfit(int _st)
 {
 
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -328,7 +257,14 @@ void slaveUpdatePrice(int _pid)
         pubLog2Db("Update price to db error: SQL return [" + res + "]", "NST-MBT-LOG");
 }
 
-//-- slave func - update slave order profit info to `nst_mbt_slave_profit` table
+/**
+ * slaveUpdateOrderProfit()
+ * update slave order profit info to `nst_mbt_slave_profit` table
+ * return[int]
+ *
+ * @param string    _arr    [array of orders]
+ * @param int       _aid    [metatrader account id]
+ */
 int slaveUpdateOrderProfit(string _arr[][], int _aid)
 {
     int size = ArrayRange(_arr, 0);
@@ -349,7 +285,13 @@ int slaveUpdateOrderProfit(string _arr[][], int _aid)
     return(1);
 }
 
-//--
+/**
+ * slaveCheckCommand()
+ * check command who need to handle
+ * return[int]
+ *
+ * @param string    _arr   [array of command]
+ */
 int slaveCheckCommand(string _arr[][])
 {
     int size = ArrayRange(_arr, 1);
@@ -458,13 +400,85 @@ int slaveCheckCommand(string _arr[][])
     return(1);
 }
 
-//--
-void slaveCheckOrder(string _oarr[][])
+/**
+ * slaveCheckOrder()
+ * check order who has problem
+ * return[void]
+ *
+ * @param string    _oarr   [array of order]
+ * @param string    _carr   [array or command]
+ */
+void slaveCheckOrder(string _oarr[][], string _carr[][])
 {
-    int size = ArrayRange(_oarr, 0);
-    
+    int osize = ArrayRange(_oarr, 0);
+    int csize = ArrayRange(_carr, 0);
+    //if(size <= 0) return(0);
+    int i, j, s; //-- counter
+    int ticket;
+
+
+    //-- check has order no command and set SL & TP
+    for(i = 0; i < osize; i++)
+    {
+        s = 0;
+        //-- check
+        for(j = 0; j < csize; j++)
+        {
+            if(_oarr[i][0] == _carr[j][10])
+            {
+                s = 1;
+                continue;
+            }
+        }
+
+        //-- set
+        if(s == 0)
+        {
+            ticket = StrToInteger(_oarr[i][0]);
+            if(OrderSelect(ticket, SELECT_BY_TICKET) == true)
+            {
+                if(pubGetOrderTotalProfit(ticket) > 0)
+                    pubOrderCloseByTicket(ticket);
+                else if(OrderStopLoss() == 0 || OrderTakeProfit() == 0)
+                    pubSetOrderSLTP(ticket, TakeProfitPips, StopLossPips);
+            }
+        }
+    }
+
+    //-- check has order no command
+    for(i = 0; i < csize; i++)
+    {
+        s = 0;
+        for(j = 0; j < osize; j++)
+        {
+            if(_oarr[i][0] == _carr[j][10])
+            {
+                s = 1;
+                continue;
+            }
+        }
+
+        //-- 
+        if(s == 0)
+        {
+            ticket = StrToInteger(_carr[i][10]);
+            if(OrderSelect(ticket, SELECT_BY_TICKET, MODE_HISTORY) == true)
+            {
+                if(OrderCLosePrice() > 0)
+                    pubSetCommandStatus(_carr[i][10], 6);
+            }
+        }
+    }
 }
 
+/**
+ * slaveInsertProfit()
+ * insert slave order proift to database
+ * return[bool] insert success or fail
+ *
+ * @param string    _cid    [command id]
+ * @param string    _ticket [order ticket number]
+ */
 bool slaveInsertProfit(string _cid, string _ticket)
 {
     string _query = "INSERT INTO nst_mbt_slave_profit (commandid, slaveorderticket) VALUES (" + _cid + ", " + _ticket + ")";
@@ -478,7 +492,17 @@ bool slaveInsertProfit(string _cid, string _ticket)
         return(true);
 }
 
-//-- command id & order ticket & open price & command status id
+/**
+ * slaveUpdateCommandInfo()
+ * command id & order ticket & open price & command status id
+ * return[bool] update success or fail
+ *
+ * @param string    _cid    [command id]
+ * @param string    _ticket [order ticket number]
+ * @param double    _op     [order open price]
+ * @param int       _sid    [command status id]
+ */
+//-- 
 bool slaveUpdateCommandInfo(string _cid, int _ticket, double _op, int _sid)
 {
     string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + ", slaveorderid=" + _ticket + ", slaveopenprice=" + _op + ",WHERE id=" + _cid;
@@ -515,17 +539,6 @@ double slaveGetMasterOrderTotalProfit(string _cid)
 
     return(_profit);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -595,7 +608,15 @@ bool pubOrderCloseByTicket(int _ticket)
     return(_status);
 }
 
-//--
+/**
+ * pubSetOrderSLTP()
+ * set order stop loss and take profit
+ * return[bool] set sucess or fail
+ *
+ * @param int       _ticket
+ * @param double    _tp [pip]
+ * @param double    _sl [pip]
+ */
 bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
 {
     bool _status = false; //-- init status
@@ -636,7 +657,15 @@ bool pubSetOrderSLTP(int _ticket, double _tp, double _sl)
     return(_status);
 }
 
-//--
+/**
+ * pubGetOrderArray()
+ * get order from metatrader4 client into an array
+ * return[int] array size
+ *
+ * @param string    _sym        [symbol name]
+ * @param string    &_arr[][]   [empty array use to fill order info]
+ * @param int       _mn         [magic number]
+ */
 int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic number = 0 mean all order
 {
     int symordernum = 0;
@@ -669,7 +698,17 @@ int pubGetOrderArray(string _sym, string &_arr[][], int _mn = 0) //-- magic numb
     return(symordernum);
 }
 
-//-- public func - get command from db return result rows and string array (need define array index)
+/**
+ * pubGetCommandArray()
+ * get command from db return result rows and string array (need define array index
+ * return[int] array size
+ *
+ * @param int       _symid      [symbol id]
+ * @param string    _mode       [ea running mode: master/slave]
+ * @param int       _aid        [account id]
+ * @param int       _mn         [magic number]
+ * @param string    &_arr[][]   [empty command array]
+ */
 int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr[][])
 {
     //-- make where
@@ -697,7 +736,14 @@ int pubGetCommandArray(int _symid, string _mode, int _aid, int _mn, string &_arr
     return(_rows);
 }
 
-//-- update command status
+/**
+ * pubSetCommandStatus()
+ * set command status in database by command id and status id
+ * return[bool] set command status sucess or not
+ *
+ * @param string    _cid    [command id]
+ * @param int       _sid    [status id] - status id list is in 'NST_MBT - Workflow_Order_And_Command.drawing' file
+ */
 bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
 {
     string _query = "UPDATE nst_mbt_command SET commandstatus=" + _sid + " WHERE id=" + _cid;
@@ -711,7 +757,13 @@ bool pubSetCommandStatus(string _cid, int _sid) //-- command id & status id
         return(true);
 }
 
-//-- get real pip
+/**
+ * pubGetRealPip()
+ * get current real pip
+ * return[int] real pip
+ *
+ * @param string    _sym    [symbol name]
+ */
 int pubGetRealPip(string _sym)
 {
     int _point_compat = 1;
@@ -721,7 +773,13 @@ int pubGetRealPip(string _sym)
     return(_point_compat);
 }
 
-//-- get real min pip
+/**
+ * pubGetMinPoint()
+ * get current min point
+ * return[double] min point
+ *
+ * @param string    _sym    [symbol name]
+ */
 double pubGetMinPoint(string _sym)
 {
     int     _digit = MarketInfo(_sym, MODE_DIGITS);
@@ -731,4 +789,117 @@ double pubGetMinPoint(string _sym)
         _point *= 10;
 
     return(_point);
+}
+
+/**
+ * pubGetAccountId()
+ * get account id in database by account number, broker name, leverage and account type (demo or not)
+ * return[int] accunt id
+ *
+ * @param int       _an     [account number]
+ * @param string    _bn     [broker name]
+ * @param int       _lev    [account leverage]
+ * @param int       _isdemo [account type (demo or not)]
+ */
+int pubGetAccountId(int _an, string _bn, int _lev, int _isdemo = 1)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_sys_account WHERE accountnumber='" + _an + "' AND broker='" + _bn + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_sys_account (strategyid, accountnumber, broker, leverage, accounttype) VALUES (3, " + _an + ", '" + _bn + "', " + _lev + ", " + _isdemo + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+/**
+ * pubGetPriceId()
+ * get price id in database by account id and symbol id
+ * return[int] price record id
+ *
+ * @param int   _aid  [account id]
+ * @param int   _sid  [symbol id]
+ */
+int pubGetPriceId(int _aid, int _sid)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_price WHERE accountid='" + _aid + "' AND symbolid='" + _sid + "'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_price (accountid, symbolid) VALUES (" + _aid + ", " + _sid + ")";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+/**
+ * pubGetSymbolId()
+ * get symbol id in database by symbol name
+ * return[int] symbol id
+ *
+ * @param string    _sn   [symobl name]
+ */
+int pubGetSymbolId(string _sn)
+{
+    int _id = 0;
+    string squery = "SELECT id FROM nst_mbt_symbol WHERE symbolname='" + _sn +"'";
+    string res = pmql_exec(squery);
+    if(res == "")
+    {
+        string iquery = "INSERT INTO nst_mbt_symbol (symbolname) VALUES ('" + _sn + "')";
+        res = pmql_exec(iquery);
+        if(res == "")
+        {
+            res = pmql_exec(squery);
+            _id = StrToInteger(StringSubstr(res, 3, -1));
+        }
+    }
+    else
+        _id = StrToInteger(StringSubstr(res, 3, -1));
+
+    //-- return 
+    if(_id > 0)
+        return(_id);
+    else
+        return(0);
+}
+
+
+/**
+ * pubGetOrderTotalProfit()
+ * get order total profit (profit + swap + commission) by ticket
+ * return[double] total profit
+ *
+ * @param int    _ticket   [symobl name]
+ */
+double pubGetOrderTotalProfit(int _ticket)
+{
+
 }
