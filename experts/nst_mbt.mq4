@@ -416,6 +416,8 @@ void slaveCheckOrder(string _oarr[][], string _carr[][])
     int i, j, s; //-- counter
     int ticket;
 
+    double totalprofit = 0;
+
 
     //-- check has order no command and set SL & TP
     for(i = 0; i < osize; i++)
@@ -437,7 +439,7 @@ void slaveCheckOrder(string _oarr[][], string _carr[][])
             ticket = StrToInteger(_oarr[i][0]);
             if(OrderSelect(ticket, SELECT_BY_TICKET) == true)
             {
-                if(pubGetOrderTotalProfit(ticket) > 0)
+                if(pubGetOrderTotalProfit(ticket, totalprofit) == true && totalprofit > 0)
                     pubOrderCloseByTicket(ticket);
                 else if(OrderStopLoss() == 0 || OrderTakeProfit() == 0)
                     pubSetOrderSLTP(ticket, TakeProfitPips, StopLossPips);
@@ -895,11 +897,18 @@ int pubGetSymbolId(string _sn)
 /**
  * pubGetOrderTotalProfit()
  * get order total profit (profit + swap + commission) by ticket
- * return[double] total profit
+ * return[bool] return false if get fail
  *
- * @param int    _ticket   [symobl name]
+ * @param int    _ticket        [symobl name]
+ * @param double &_totalprofit  [total profit]
  */
-double pubGetOrderTotalProfit(int _ticket)
+bool pubGetOrderTotalProfit(int _ticket, double &_totalprofit)
 {
-
+    bool status = false;
+    if(OrderSelect(_ticket, SELECT_BY_TICKET) == true)
+    {
+        _totalprofit = OrderProfit() + OrderSwap() + OrderCommission();
+        status = true;
+    }
+    return(status);
 }
