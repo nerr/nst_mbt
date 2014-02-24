@@ -172,6 +172,13 @@ void test()
  * Master Funcs
  * the func who use for slave mode only
  */
+
+/**
+ * masterCheckOrder()
+ * 
+ * return[void]
+ *
+ */
 void masterCheckOrder(string _oarr[][], string _carr[][])
 {
     //-- has order no command
@@ -181,6 +188,12 @@ void masterCheckOrder(string _oarr[][], string _carr[][])
     //-- has order and command
 }
 
+/**
+ * masterHandleCommand()
+ * 
+ * return[void]
+ *
+ */
 void masterHandleCommand(string _carr[][])
 {
     //-- 6: slave order closed
@@ -233,7 +246,10 @@ bool masterGetSlaveTotalProfit(int _st, double &_totalprofit)
     string res = pmql_exec(squery);
     if(res == "")
     {
+        string _data[,7];
+        libPgsqlFetchArr(res, _data);
 
+        _totalprofit = StrToDouble(_data[0][3]) + StrToDouble(_data[0][4]) + StrToDouble(_data[0][5]);
     }
 
     return(status);
