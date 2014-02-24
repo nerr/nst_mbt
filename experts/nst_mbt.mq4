@@ -226,10 +226,15 @@ void masterDiscoverChance()
  */
 bool masterGetTotalProfit(int _mt, int _st, double &_totalprofit)
 {
-    bool status = false;
+    double mtp, stp;
+    bool mstatus, sstatus;
 
+    sstatus = masterGetSlaveTotalProfit(_st, stp);
+    mstatus = pubGetOrderTotalProfit(_mt, mtp);
 
-    return(status);
+    _totalprofit = mtp + stp;
+
+    return(mstatus && sstatus);
 }
 
 /**
