@@ -498,7 +498,7 @@ void slaveCheckOrder(string _oarr[][], string _carr[][])
             ticket = StrToInteger(_carr[i][10]);
             if(OrderSelect(ticket, SELECT_BY_TICKET, MODE_HISTORY) == true)
             {
-                if(OrderCLosePrice() > 0)
+                if(OrderClosePrice() > 0)
                     pubSetCommandStatus(_carr[i][10], 6);
             }
         }
