@@ -155,3 +155,23 @@ bool libDebugInArr(int _needle, int _array[])
 
     return(false);
 }
+
+string libDebugDumpArray(double &_array[][])
+{
+    int A1 = ArrayRange(_array, 0);
+    int A2 = ArrayRange(_array, 1);
+    string output = "";
+
+    for(int i = 0; i < A1; i++)
+    {
+        output = output + "<" + i + ">";
+        for(int j = 0; j < A2; j++)
+        {
+            output = output + "[" + j + "]" + _array[i][j];
+        }
+
+        output = output + "\n";
+    }
+
+    return(output);
+}
