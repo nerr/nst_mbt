@@ -35,7 +35,7 @@ You need two brokers MetaTrader4 account first.
 ## Thanks
 Thank [Navicat](http://www.navicat.com) for the [Open Source Project License](http://www.navicat.com/store/open-source) support.
 
-[![Logo](http://i3.minus.com/i4vQk2HN3K5Fx.jpg)](http://www.navicat.com)
+[![Logo](https://raw.githubusercontent.com/nerr/nst_mbt/master/docs/logo/navicat.jpg)](http://www.navicat.com)
 
 Thank [RubyMine](http://www.jetbrains.com/ruby/) for the [Open Source Project License](http://www.jetbrains.com/ruby/buy/buy.jsp#openSource) support.
 
