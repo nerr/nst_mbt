@@ -43,7 +43,7 @@ Thank [RubyMine](http://www.jetbrains.com/ruby/) for the [Open Source Project Li
 
 # License
 
-	Copyright (c) 2012 Nerrsoft.com
+	Copyright (c) 2018 Nerrsoft.com
 
 	Licensed under the Apache License, Version 2.0 (the "License");
 	you may not use this file except in compliance with the License.
